@@ -1,9 +1,12 @@
-// src/pages/LoginPage.js
 import React, { useState } from 'react';
-import { auth } from '../config/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios'; 
+import axios from 'axios';
+import { auth } from '../config/firebase'; 
+import { 
+  signInWithEmailAndPassword, 
+  setPersistence, 
+  browserLocalPersistence 
+} from 'firebase/auth'; 
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -12,38 +15,61 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setError(null);
+    e.preventDefault(); 
+    setError(null); 
 
     try {
+      await setPersistence(auth, browserLocalPersistence);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       const idToken = await user.getIdToken(); 
 
-      console.log('User logged in (Firebase):', user);
-      console.log('Firebase ID Token:', idToken);
+      // Dapatkan username dari user.displayName atau fallback ke bagian email
+      const username = user.displayName || user.email.split('@')[0]; // Ambil username
 
-      
       const backendResponse = await axios.post(
         'http://localhost:8000/api/auth/firebase-login', 
-        {
-          idToken: idToken
-        }
+        { idToken: idToken, username: username } // Kirim idToken DAN username
       );
 
-      console.log('Backend response after Firebase ID Token verification:', backendResponse.data);
-
+      const sanctumToken = backendResponse.data.token;
+      localStorage.setItem('sanctum_token', sanctumToken); 
       
       if (backendResponse.status === 200) {
-          navigate('/dashboard');
+          navigate('/dashboard'); 
       } else {
-          setError(backendResponse.data.message || "Failed to authenticate with backend.");
+          setError(backendResponse.data.message || "Gagal mengautentikasi dengan backend.");
       }
 
-    } catch (error) {
-      
-      setError(error.message || error.response?.data?.message || "An unexpected error occurred.");
-      console.error("Login error:", error.code, error.message || error.response?.data?.message || error);
+    } catch (err) {
+      let errorMessage = "Terjadi kesalahan yang tidak terduga. Silakan coba lagi.";
+      if (err.code) { 
+          switch (err.code) {
+              case 'auth/invalid-credential':
+              case 'auth/wrong-password':
+              case 'auth/user-not-found':
+              case 'auth/invalid-email':
+                  errorMessage = "Email atau password salah.";
+                  break;
+              case 'auth/too-many-requests':
+                  errorMessage = "Terlalu banyak percobaan login. Coba lagi nanti.";
+                  break;
+              case 'auth/network-request-failed':
+                  errorMessage = "Masalah jaringan. Pastikan Anda terhubung ke internet.";
+                  break;
+              default:
+                  errorMessage = err.message; 
+          }
+      } else if (err.response && err.response.data && err.response.data.errors) { 
+          const validationErrors = Object.values(err.response.data.errors).flat().join('; ');
+          errorMessage = `Validation failed: ${validationErrors}`;
+      } else if (err.response && err.response.data && err.response.data.message) { 
+          errorMessage = err.response.data.message;
+      } else if (err.message) { 
+          errorMessage = err.message;
+      }
+
+      setError(errorMessage);
     }
   };
 

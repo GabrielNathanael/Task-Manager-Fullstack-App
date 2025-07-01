@@ -1,0 +1,390 @@
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { auth } from "../config/firebase";
+import { signOut } from "firebase/auth";
+import { useAuth } from "../context/AuthContext";
+import MainLayout from "../components/MainLayout.jsx";
+import TaskListSkeleton from "../components/TaskListSkeleton.jsx";
+import { PlusIcon } from "../assets/icons/Icons.jsx";
+
+// Helper function to format status textect
+const formatStatusText = (status) => {
+  if (!status) return '';
+  return status
+    .replace(/_/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+const TaskForm = ({ onTaskCreated, currentUser, onOptimisticAdd, onClose, projects }) => {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [status, setStatus] = useState("pending");
+  const [projectId, setProjectId] = useState("");
+  const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+    const selectedProjectId = projectId === "" ? null : parseInt(projectId, 10);
+    const optimisticTask = {
+      id: `temp-${Date.now()}`,
+      title,
+      description,
+      status,
+      due_date: dueDate,
+      project_id: selectedProjectId,
+      user_id: currentUser.uid,
+      isOptimistic: true,
+    };
+    onOptimisticAdd(optimisticTask);
+    onClose();
+    try {
+      const authToken = localStorage.getItem("sanctum_token");
+      const response = await axios.post("http://localhost:8000/api/tasks", { title, description, due_date: dueDate, status, project_id: selectedProjectId }, { headers: { Authorization: `Bearer ${authToken}` } });
+      onTaskCreated(optimisticTask.id, response.data.task);
+    } catch (err) {
+      console.error("Error creating task:", err);
+      onTaskCreated(optimisticTask.id, null);
+      setError("Failed to create task.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
+      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+        <h3 className="text-2xl font-bold mb-4 text-gray-800">Add New Task</h3>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label htmlFor="title" className="block text-gray-700 text-sm font-bold mb-2">Title</label>
+            <input type="text" id="title" value={title} onChange={(e) => setTitle(e.target.value)} required className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"/>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="project" className="block text-gray-700 text-sm font-bold mb-2">Project</label>
+            <select id="project" value={projectId} onChange={(e) => setProjectId(e.target.value)} className="shadow border rounded w-full py-2 px-3 text-gray-700 bg-white">
+                <option value="">Not in any project</option>
+                {projects.map(project => (<option key={project.id} value={project.id}>{project.name}</option>))}
+            </select>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="description" className="block text-gray-700 text-sm font-bold mb-2">Description</label>
+            <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"></textarea>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="dueDate" className="block text-gray-700 text-sm font-bold mb-2">Due Date</label>
+            <input type="date" id="dueDate" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"/>
+          </div>
+          <div className="mb-6">
+            <label htmlFor="status" className="block text-gray-700 text-sm font-bold mb-2">Status</label>
+            <select id="status" value={status} onChange={(e) => setStatus(e.target.value)} className="shadow border rounded w-full py-2 px-3 text-gray-700 bg-white">
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+          {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
+          <div className="flex justify-end space-x-2">
+            <button type="button" onClick={onClose} className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Cancel</button>
+            <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" disabled={isSubmitting}>Add Task</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const TaskList = ({ tasks, onDeleteTask, onEditTask, onShowDetail }) => {
+  return (
+    <div className="bg-white rounded-lg shadow-md mt-6 overflow-hidden">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h3 className="text-xl font-bold text-gray-800">Your Tasks</h3>
+      </div>
+      {tasks.length === 0 ? (
+        <div className="px-6 py-8 text-center"><p className="text-gray-600">No tasks found. Add a new one!</p></div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 table-fixed">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[30%]">Title</th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">Project</th>
+                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-[15%]">Status</th>
+                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">Due Date</th>
+                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-[25%]">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {tasks.map((task) => (
+                <tr key={task.id} className={`hover:bg-gray-50 transition-colors duration-150 ${task.isOptimistic ? "opacity-50 animate-pulse" : ""}`}>
+                  <td className="px-6 py-4 cursor-pointer align-top"><div onClick={() => onShowDetail(task)} className="text-sm font-medium text-gray-900 hover:text-blue-600 transition-colors duration-150 break-words">{task.title}</div></td>
+                  <td className="px-6 py-4 align-top"><div className="text-sm text-gray-500 break-words">{task.project?.name || "Not in any project"}</div></td>
+                  <td className="px-6 py-4 align-top text-center"><span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${task.status === "completed" ? "bg-green-100 text-green-800" : task.status === "in_progress" ? "bg-blue-100 text-blue-800" : "bg-yellow-100 text-yellow-800"}`}>{formatStatusText(task.status)}</span></td>
+                  <td className="px-6 py-4 text-sm text-gray-500 align-top text-center">{task.due_date ? new Date(task.due_date).toLocaleDateString() : "N/A"}</td>
+                  <td className="px-6 py-4 text-center align-top"><div className="flex justify-center space-x-3"><button onClick={() => onEditTask(task)} className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200">Edit</button><button onClick={() => onDeleteTask(task.id)} className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200">Delete</button></div></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const TaskEditModal = ({ task, onUpdate, onClose, projects }) => {
+  const [title, setTitle] = useState(task.title);
+  const [description, setDescription] = useState(task.description);
+  const formattedDueDate = task.due_date ? new Date(task.due_date).toISOString().split("T")[0] : "";
+  const [dueDate, setDueDate] = useState(formattedDueDate);
+  const [status, setStatus] = useState(task.status);
+  const [projectId, setProjectId] = useState(task.project_id || '');
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    const selectedProjectId = projectId === '' ? null : parseInt(projectId, 10);
+    try {
+      await onUpdate(task.id, { title, description, due_date: dueDate, status, project_id: selectedProjectId });
+      onClose();
+    } catch (err) {
+      setError(err.message || "Failed to update task.");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center p-4 z-50">
+      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+        <h3 className="text-2xl font-bold mb-4 text-gray-800">Edit Task</h3>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label htmlFor="editTitle" className="block text-gray-700 text-sm font-bold mb-2">Title</label>
+            <input type="text" id="editTitle" value={title} onChange={(e) => setTitle(e.target.value)} required className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"/>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="editProject" className="block text-gray-700 text-sm font-bold mb-2">Project</label>
+            <select id="editProject" value={projectId} onChange={(e) => setProjectId(e.target.value)} className="shadow border rounded w-full py-2 px-3 text-gray-700 bg-white">
+                <option value="">Not in any project</option>
+                {projects.map(project => (<option key={project.id} value={project.id}>{project.name}</option>))}
+            </select>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="editDescription" className="block text-gray-700 text-sm font-bold mb-2">Description</label>
+            <textarea id="editDescription" value={description} onChange={(e) => setDescription(e.target.value)} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"></textarea>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="editDueDate" className="block text-gray-700 text-sm font-bold mb-2">Due Date</label>
+            <input type="date" id="editDueDate" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"/>
+          </div>
+          <div className="mb-6">
+            <label htmlFor="editStatus" className="block text-gray-700 text-sm font-bold mb-2">Status</label>
+            <select id="editStatus" value={status} onChange={(e) => setStatus(e.target.value)} className="shadow border rounded w-full py-2 px-3 text-gray-700 bg-white">
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+          {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
+          <div className="flex justify-end space-x-2">
+            <button type="button" onClick={onClose} className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Cancel</button>
+            <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Update Task</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const DeleteConfirmationModal = ({ taskId, onDeleteConfirm, onClose }) => (
+  <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center p-4 z-50">
+    <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+      <h3 className="text-xl font-bold mb-4 text-gray-800">Confirm Deletion</h3>
+      <p className="text-gray-700 mb-6">Are you sure you want to delete this task?</p>
+      <div className="flex justify-end space-x-2">
+        <button type="button" onClick={onClose} className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">Cancel</button>
+        <button type="button" onClick={() => onDeleteConfirm(taskId)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Delete</button>
+      </div>
+    </div>
+  </div>
+);
+
+const TaskDetailModal = ({ task, onClose }) => {
+  return (
+    <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center p-4 z-50">
+      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+        <h3 className="text-2xl font-bold mb-4 text-gray-800">{task.title}</h3>
+        <div className="mb-4">
+          <p className="text-gray-700 text-sm font-semibold">Project:</p>
+          <p className="text-gray-800">{task.project?.name || "Not in any project"}</p>
+        </div>
+        <div className="mb-4">
+          <p className="text-gray-700 text-sm font-semibold">Description:</p>
+          <p className="text-gray-800">{task.description || "No description provided."}</p>
+        </div>
+        <div className="mb-4">
+          <p className="text-gray-700 text-sm font-semibold">Status:</p>
+          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${task.status === "completed" ? "bg-green-100 text-green-800" : task.status === "in_progress" ? "bg-blue-100 text-blue-800" : "bg-yellow-100 text-yellow-800"}`}>{formatStatusText(task.status)}</span>
+        </div>
+        <div className="mb-6">
+          <p className="text-gray-700 text-sm font-semibold">Due Date:</p>
+          <p className="text-gray-800">{task.due_date ? new Date(task.due_date).toLocaleDateString() : "N/A"}</p>
+        </div>
+        <div className="flex justify-end">
+          <button type="button" onClick={onClose} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Close</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DashboardPage = () => {
+  const navigate = useNavigate();
+  const { currentUser, loadingAuth, isAuthenticated, handleLogout } = useAuth();
+  const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [editingTask, setEditingTask] = useState(null);
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
+  const [selectedTaskForDetail, setSelectedTaskForDetail] = useState(null);
+
+  const handleOptimisticAdd = (optimisticTask) => {
+    const project = projects.find(p => p.id === optimisticTask.project_id);
+    const taskWithProject = { ...optimisticTask, project };
+    setTasks(prev => [taskWithProject, ...prev]);
+  };
+
+  const handleTaskChange = (tempId, newTask) => {
+    setTasks(prev => prev.map(t => (t.id === tempId ? { ...newTask, isOptimistic: false } : t)));
+  };
+  
+  const handleDeleteTask = (taskId) => setTaskToDelete(taskId);
+  const handleEditTask = (task) => setEditingTask(task);
+  const handleShowTaskDetail = (task) => setSelectedTaskForDetail(task);
+  
+  const onDeleteConfirm = async (taskId) => {
+    const originalTasks = [...tasks];
+    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+    setTaskToDelete(null);
+    try {
+      const authToken = localStorage.getItem("sanctum_token");
+      await axios.delete(`http://localhost:8000/api/tasks/${taskId}`, { headers: { Authorization: `Bearer ${authToken}` } });
+    } catch (err) {
+      setError("Failed to delete task.");
+      setTasks(originalTasks);
+    }
+  };
+
+  const handleUpdateTask = async (taskId, updatedData) => {
+    const originalTasks = [...tasks];
+    const project = projects.find(p => p.id === updatedData.project_id);
+    setTasks((prevTasks) => prevTasks.map((task) => task.id === taskId ? { ...task, ...updatedData, project, isOptimistic: true } : task));
+    setEditingTask(null);
+    try {
+      const authToken = localStorage.getItem("sanctum_token");
+      const response = await axios.put(`http://localhost:8000/api/tasks/${taskId}`, updatedData, { headers: { Authorization: `Bearer ${authToken}` } });
+      setTasks((prevTasks) => prevTasks.map((task) => task.id === taskId ? { ...response.data.task, isOptimistic: false } : task));
+    } catch (err) {
+      setError("Failed to update task.");
+      setTasks(originalTasks);
+    }
+  };
+
+  useEffect(() => {
+    if (!loadingAuth && !isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    const fetchInitialData = async () => {
+      if (isAuthenticated) {
+        setIsLoading(true);
+        setError(null);
+        try {
+          const authToken = localStorage.getItem("sanctum_token");
+          const [tasksResponse, projectsResponse] = await Promise.all([
+            axios.get('http://localhost:8000/api/tasks', { headers: { Authorization: `Bearer ${authToken}` } }),
+            axios.get('http://localhost:8000/api/projects', { headers: { Authorization: `Bearer ${authToken}` } })
+          ]);
+          setTasks(tasksResponse.data.tasks);
+          setProjects(projectsResponse.data.projects);
+        } catch (err) {
+          setError("Could not fetch initial data.");
+          if (err.response?.status === 401) handleLogout();
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    if (!loadingAuth) {
+        fetchInitialData();
+    }
+  }, [loadingAuth, isAuthenticated, navigate, handleLogout]);
+  
+  return (
+    <MainLayout>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
+        <button onClick={() => setShowAddTaskModal(true)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2">
+          <PlusIcon className="size-5" />
+          <span>Add New Task</span>
+        </button>
+      </div>
+
+      {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+
+      {isLoading ? (
+        <TaskListSkeleton />
+      ) : (
+        <TaskList
+          tasks={tasks}
+          onDeleteTask={handleDeleteTask}
+          onEditTask={handleEditTask}
+          onShowDetail={handleShowTaskDetail}
+        />
+      )}
+
+      {showAddTaskModal && (
+        <TaskForm
+          onTaskCreated={handleTaskChange}
+          onOptimisticAdd={handleOptimisticAdd}
+          currentUser={currentUser}
+          onClose={() => setShowAddTaskModal(false)}
+          projects={projects}
+        />
+      )}
+      {editingTask && (
+        <TaskEditModal
+          task={editingTask}
+          onUpdate={handleUpdateTask}
+          onClose={() => setEditingTask(null)}
+          projects={projects}
+        />
+      )}
+      {taskToDelete && (
+        <DeleteConfirmationModal
+          taskId={taskToDelete}
+          onDeleteConfirm={onDeleteConfirm}
+          onClose={() => setTaskToDelete(null)}
+        />
+      )}
+      {selectedTaskForDetail && (
+        <TaskDetailModal
+          task={selectedTaskForDetail}
+          onClose={() => setSelectedTaskForDetail(null)}
+        />
+      )}
+    </MainLayout>
+  );
+};
+
+export default DashboardPage;
