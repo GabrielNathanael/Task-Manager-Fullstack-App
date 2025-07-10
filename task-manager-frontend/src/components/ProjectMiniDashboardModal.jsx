@@ -145,12 +145,10 @@ const TaskList = ({
             {table.getRowModel().rows.length === 0 ? (
               <tr>
                 <td
-                  key={cell.id}
-                  className={`px-6 py-4 text-sm align-top text-${
-                    cell.column.columnDef.meta?.align || "left"
-                  }`}
+                  colSpan={columns.length}
+                  className="px-6 py-8 text-center text-gray-600"
                 >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  No tasks found.
                 </td>
               </tr>
             ) : (

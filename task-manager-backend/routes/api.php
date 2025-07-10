@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TaskController; 
 use App\Http\Controllers\ProjectController;
-use App\Http\Controllers\DashboardController; // <-- 1. TAMBAHKAN BARIS INI
+use App\Http\Controllers\DashboardController; 
 use App\Http\Middleware\AuthenticateFirebaseToken; 
 
 // Rute ini tidak memerlukan autentikasi
@@ -14,7 +14,7 @@ Route::post('/auth/firebase-login', [AuthController::class, 'firebaseLogin']);
 // Semua rute di dalam grup ini akan dilindungi oleh middleware
 Route::middleware(AuthenticateFirebaseToken::class)->group(function () { 
 
-    // 2. PINDAHKAN RUTE DASHBOARD KE SINI
+    
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
     // Task Routes

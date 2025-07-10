@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import MainLayout from "../components/MainLayout.jsx";
@@ -136,7 +136,40 @@ const ProjectForm = ({ project, onSave, onClose }) => {
   );
 };
 
-const ProjectCard = ({ project, onOpenMiniDashboard, onEdit, onDelete }) => (
+const DeleteConfirmationModal = ({ taskId, onDeleteConfirm, onClose }) => (
+  <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center p-4 z-50">
+    <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+      <h3 className="text-xl font-bold mb-4 text-gray-800">Confirm Deletion</h3>
+      <p className="text-gray-700 mb-6">
+        Are you sure you want to delete this project?
+      </p>
+      <div className="flex justify-end space-x-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={() => onDeleteConfirm(taskId)}
+          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+const ProjectCard = ({
+  project,
+  onOpenMiniDashboard,
+  onEdit,
+  onDelete,
+  onConfirmDelete,
+}) => (
   <div
     className={`bg-white p-6 rounded-lg shadow-md border-t-4 ${
       project.isOptimistic ? "opacity-50 animate-pulse" : ""
@@ -165,7 +198,7 @@ const ProjectCard = ({ project, onOpenMiniDashboard, onEdit, onDelete }) => (
         <EditIcon className="size-5" />
       </button>
       <button
-        onClick={() => onDelete(project.id)}
+        onClick={onConfirmDelete}
         className="text-red-600 hover:text-red-800"
       >
         <DeleteIcon className="size-5" />
@@ -185,8 +218,13 @@ const ProjectPage = () => {
   const [selectedProjectForMiniDashboard, setSelectedProjectForMiniDashboard] =
     useState(null);
   const [cachedTasksByProject, setCachedTasksByProject] = useState({});
-
+  const lastProjectCountRef = useRef(6);
   useEffect(() => {
+    const savedCount = parseInt(localStorage.getItem("last_project_count"));
+    if (!isNaN(savedCount)) {
+      lastProjectCountRef.current = savedCount;
+    }
+
     if (!loadingAuth && !isAuthenticated) {
       navigate("/login");
       return;
@@ -204,7 +242,12 @@ const ProjectPage = () => {
       const response = await axios.get("http://localhost:8000/api/projects", {
         headers: { Authorization: `Bearer ${authToken}` },
       });
-      setProjects(response.data.projects);
+      const fetchedProjects = response.data.projects;
+
+      lastProjectCountRef.current = fetchedProjects.length || 6;
+      localStorage.setItem("last_project_count", lastProjectCountRef.current);
+
+      setProjects(fetchedProjects);
     } catch (err) {
       setError("Failed to fetch projects.");
       if (err.response?.status === 401) handleLogout();
@@ -282,8 +325,6 @@ const ProjectPage = () => {
   };
 
   const handleDeleteProject = async (projectId) => {
-    if (!window.confirm("Are you sure you want to delete this project?"))
-      return;
     const originalProjects = [...projects];
     setProjects((prev) => prev.filter((p) => p.id !== projectId));
     try {
@@ -300,6 +341,7 @@ const ProjectPage = () => {
   const handleEditProject = (project) => setEditingProject(project);
   const handleOpenMiniDashboard = (project) =>
     setSelectedProjectForMiniDashboard(project);
+  const [projectToDelete, setProjectToDelete] = useState(null);
 
   return (
     <MainLayout>
@@ -318,7 +360,7 @@ const ProjectPage = () => {
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 3 }).map((_, i) => (
+          {Array.from({ length: lastProjectCountRef.current }).map((_, i) => (
             <ProjectCardSkeleton key={i} />
           ))}
         </div>
@@ -336,6 +378,7 @@ const ProjectPage = () => {
                 onOpenMiniDashboard={handleOpenMiniDashboard}
                 onEdit={handleEditProject}
                 onDelete={handleDeleteProject}
+                onConfirmDelete={() => setProjectToDelete(project)}
               />
             ))
           )}
@@ -364,6 +407,16 @@ const ProjectPage = () => {
           currentUser={currentUser}
           cachedTasks={cachedTasksByProject[selectedProjectForMiniDashboard.id]}
           onProjectTasksUpdated={updateProjectCount}
+        />
+      )}
+      {projectToDelete && (
+        <DeleteConfirmationModal
+          taskId={projectToDelete.id}
+          onDeleteConfirm={(id) => {
+            handleDeleteProject(id);
+            setProjectToDelete(null);
+          }}
+          onClose={() => setProjectToDelete(null)}
         />
       )}
     </MainLayout>
