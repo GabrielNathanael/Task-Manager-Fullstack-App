@@ -12,7 +12,7 @@ class Project extends Model
     protected $fillable = [
         'name',
         'description',
-        'color', // <<--- TAMBAHKAN INI
+        'color', 
         'user_id',
     ];
 

@@ -10,7 +10,6 @@ createRoot(document.getElementById("root")).render(
     <AuthProvider>
       <SearchProvider>
         {" "}
-        {/* ✅ Pindahkan ke sini, agar global */}
         <App />
       </SearchProvider>
     </AuthProvider>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
-import { useSearch } from "../context/SearchContext"; // ✅ PENTING: import ini!
+import { useSearch } from "../context/SearchContext";
 
 import {
   FolderIcon,

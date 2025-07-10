@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
-import { auth } from '../config/firebase'; 
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'; // Tambahkan updateProfile
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import axios from "axios";
+import { auth } from "../config/firebase";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 
 const RegisterPage = () => {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -18,46 +18,48 @@ const RegisterPage = () => {
     setIsSubmitting(true);
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       const firebaseUser = userCredential.user;
-      
-      // Set displayName di Firebase User Profile agar username tersedia saat login
-      await updateProfile(firebaseUser, { displayName: username }); // Tambahkan baris ini!
-      
+
+      await updateProfile(firebaseUser, { displayName: username });
+
       const idToken = await firebaseUser.getIdToken();
-      
+
       const backendResponse = await axios.post(
-        'http://localhost:8000/api/auth/firebase-login', 
-        { 
+        "http://localhost:8000/api/auth/firebase-login",
+        {
           idToken: idToken,
-          username: username // Kirim username yang diinput
+          username: username, // Kirim username yang diinput
         }
       );
 
       const sanctumToken = backendResponse.data.token;
-      localStorage.setItem('sanctum_token', sanctumToken); 
-      
-      navigate('/dashboard');
+      localStorage.setItem("sanctum_token", sanctumToken);
 
+      navigate("/dashboard");
     } catch (err) {
       let errorMessage = "An unexpected error occurred. Please try again.";
-      if (err.code) { 
-          switch (err.code) {
-              case 'auth/email-already-in-use':
-                  errorMessage = "This email is already registered.";
-                  break;
-              case 'auth/weak-password':
-                  errorMessage = "Password should be at least 6 characters.";
-                  break;
-              default:
-                  errorMessage = err.message;
-          }
-      } else if (err.response?.data?.errors?.username) { 
-          errorMessage = err.response.data.errors.username[0];
-      } else if (err.response?.data?.message) { 
-          errorMessage = err.response.data.message;
+      if (err.code) {
+        switch (err.code) {
+          case "auth/email-already-in-use":
+            errorMessage = "This email is already registered.";
+            break;
+          case "auth/weak-password":
+            errorMessage = "Password should be at least 6 characters.";
+            break;
+          default:
+            errorMessage = err.message;
+        }
+      } else if (err.response?.data?.errors?.username) {
+        errorMessage = err.response.data.errors.username[0];
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
       }
-      
+
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -67,10 +69,15 @@ const RegisterPage = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Create Account</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
+          Create Account
+        </h2>
         <form onSubmit={handleRegister}>
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="username">
+            <label
+              className="block text-gray-700 text-sm font-bold mb-2"
+              htmlFor="username"
+            >
               Username
             </label>
             <input
@@ -83,7 +90,10 @@ const RegisterPage = () => {
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+            <label
+              className="block text-gray-700 text-sm font-bold mb-2"
+              htmlFor="email"
+            >
               Email
             </label>
             <input
@@ -96,7 +106,10 @@ const RegisterPage = () => {
             />
           </div>
           <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
+            <label
+              className="block text-gray-700 text-sm font-bold mb-2"
+              htmlFor="password"
+            >
               Password
             </label>
             <input
@@ -115,12 +128,15 @@ const RegisterPage = () => {
               disabled={isSubmitting}
               className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:bg-blue-300"
             >
-              {isSubmitting ? 'Registering...' : 'Register'}
+              {isSubmitting ? "Registering..." : "Register"}
             </button>
           </div>
           <p className="text-center text-gray-600 text-sm mt-4">
-            Already have an account?{' '}
-            <Link to="/login" className="font-bold text-blue-500 hover:text-blue-800">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="font-bold text-blue-500 hover:text-blue-800"
+            >
               Login
             </Link>
           </p>

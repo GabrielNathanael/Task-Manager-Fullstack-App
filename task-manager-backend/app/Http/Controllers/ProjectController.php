@@ -37,7 +37,7 @@ class ProjectController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'color' => 'nullable|string|max:7', // <<--- TAMBAHKAN INI (untuk format hex color)
+            'color' => 'nullable|string|max:7', 
         ]);
 
         if ($validator->fails()) {
@@ -47,7 +47,7 @@ class ProjectController extends Controller
         $project = $user->projects()->create([
             'name' => $request->name,
             'description' => $request->description,
-            'color' => $request->color ?? '#FFFFFF', // <<--- SIMPAN COLOR, default putih
+            'color' => $request->color ?? '#FFFFFF', 
         ]);
 
         return response()->json([

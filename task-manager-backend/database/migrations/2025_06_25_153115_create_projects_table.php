@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description')->nullable(); 
-            $table->string('color')->default('#FFFFFF'); // <<--- TAMBAHKAN BARIS INI
+            $table->string('color')->default('#FFFFFF'); 
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });

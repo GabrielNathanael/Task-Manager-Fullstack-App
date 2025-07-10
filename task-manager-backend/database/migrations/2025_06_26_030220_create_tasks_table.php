@@ -19,8 +19,6 @@ return new class extends Migration
             $table->timestamp('due_date')->nullable(); 
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             
-            // --- PERUBAHAN DI SINI ---
-            // Menambahkan onDelete('cascade') pada relasi project_id
             $table->foreignId('project_id')->nullable()->constrained()->onDelete('cascade'); 
             
             $table->timestamps(); 

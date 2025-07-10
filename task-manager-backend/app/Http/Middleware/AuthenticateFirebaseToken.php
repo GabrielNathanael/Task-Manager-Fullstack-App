@@ -9,7 +9,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
-use Laravel\Sanctum\PersonalAccessToken; // Pastikan ini ada
+use Laravel\Sanctum\PersonalAccessToken; 
 
 class AuthenticateFirebaseToken
 {
@@ -31,8 +31,8 @@ class AuthenticateFirebaseToken
             return response()->json(['message' => 'Unauthorized: No authentication token provided.'], 401);
         }
 
-        // 1. Coba verifikasi sebagai Token Sanctum (jalur cepat)
-        // Token Sanctum biasanya memiliki format 'ID|TOKEN_STRING'
+        // 1. Coba verifikasi sebagai Token Sanctum 
+
         if (str_contains($token, '|')) {
             try {
                 // Temukan Personal Access Token berdasarkan token yang diberikan
@@ -64,7 +64,7 @@ class AuthenticateFirebaseToken
                     'name' => $name,
                     'email' => $email,
                     'firebase_uid' => $uid,
-                    'password' => null, // Password bisa null karena login via Firebase
+                    'password' => null, 
                 ]);
             }
 

@@ -12,8 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            // Tambahkan kolom username setelah kolom 'name'
-            // 'unique' untuk memastikan tidak ada username yang sama
             $table->string('username')->unique()->after('name');
         });
     }

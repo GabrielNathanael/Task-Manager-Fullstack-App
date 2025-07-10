@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken; 
-use Illuminate\Support\Facades\Validator; // Pastikan ini ada
+use Illuminate\Support\Facades\Validator; 
 
 class AuthController extends Controller
 {
@@ -26,7 +26,7 @@ class AuthController extends Controller
     public function firebaseLogin(Request $request)
     {
         $idToken = $request->input('idToken');
-        $usernameFromRequest = $request->input('username'); // Ambil username dari request
+        $usernameFromRequest = $request->input('username'); 
 
         if (!$idToken) {
             return response()->json(['message' => 'Unauthorized: No Firebase ID Token provided.'], 400);
@@ -47,10 +47,10 @@ class AuthController extends Controller
 
             // Jika user TIDAK DITEMUKAN, ini adalah registrasi pertama kali atau login pertama setelah migrate:fresh
             if (!$user) {
-                // Lakukan validasi username. Jika username tidak ada dari request, ini akan gagal.
-                // Pastikan frontend selalu mengirim username.
+               
+            
                 $validator = Validator::make($request->all(), [
-                    'username' => 'required|string|min:3|max:25|unique:users', // Pastikan validasi ini
+                    'username' => 'required|string|min:3|max:25|unique:users', 
                 ]);
 
                 if ($validator->fails()) {
@@ -59,8 +59,8 @@ class AuthController extends Controller
 
                 // Buat user baru dengan data dari Firebase DAN username dari request
                 $user = User::create([
-                    'name' => $finalName, // Gunakan nama yang sudah difinalisasi
-                    'username' => $usernameFromRequest, // Simpan username dari request
+                    'name' => $finalName, 
+                    'username' => $usernameFromRequest, 
                     'email' => $email,
                     'firebase_uid' => $uid,
                     'password' => null, 
