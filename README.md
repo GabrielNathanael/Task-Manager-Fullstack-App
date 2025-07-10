@@ -4,7 +4,7 @@ This project is open-source and available under the [MIT License](LICENSE).
 
 ## 🚧 Development Status
 
-This project is currently under active development. Some features are already functional, but additional features are planned and will continue to be developed. Feel free to give suggestions or contribute if you're interested!
+This project is currently under active development. The core features are already working well, and additional features are planned for future updates. Feel free to give suggestions or contribute if you're interested!
 
 # Task Manager Fullstack App
 
