@@ -1,3 +1,7 @@
+## License
+
+This project is open-source and available under the [MIT License](LICENSE).
+
 # Task Manager Fullstack App
 
 This Task Manager application is a full-stack project built using Laravel (backend API) and React (frontend), with authentication via Firebase. It is designed to manage tasks and projects efficiently.
