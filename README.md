@@ -2,6 +2,10 @@
 
 This project is open-source and available under the [MIT License](LICENSE).
 
+## 🚧 Development Status
+
+This project is currently under active development. Some features are already functional, but additional features are planned and will continue to be developed. Feel free to give suggestions or contribute if you're interested!
+
 # Task Manager Fullstack App
 
 This Task Manager application is a full-stack project built using Laravel (backend API) and React (frontend), with authentication via Firebase. It is designed to manage tasks and projects efficiently.
@@ -14,8 +18,7 @@ This Task Manager application is a full-stack project built using Laravel (backe
 - **Task & Project Relationship**: Tasks can be linked to specific projects, with a “Not in any project” option.
 - **Optimistic UI**: CRUD operations on frontend feel instant with dynamic updates to task and project counts.
 - **Session Management**: Uses Laravel Sanctum for fast API authentication after initial login.
-- **Project Task Caching**: Tasks on the mini-dashboard are cached for instant reloads on repeat visits.
-- **Modern Layout**: Responsive user interface with sidebar, header, search bar, icons, and custom modals with backdrop blur using Tailwind CSS v4.
+- **Project Task Caching**: Tasks on the dashboard are cached for instant reloads on repeat visits.
 
 ---
 
