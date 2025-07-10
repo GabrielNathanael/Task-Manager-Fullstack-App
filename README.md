@@ -229,5 +229,3 @@ http://localhost:5173/
 You'll see the **Login page**. You can register a new account or login with existing credentials.
 
 ---
-
-Enjoy building with your own fullstack Task Manager! 🧑‍💻
