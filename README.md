@@ -1,197 +1,233 @@
 # Task Manager Fullstack App
 
-This Task Manager application is a full-stack project built using **Laravel** (backend API) and **React** (frontend), with authentication handled via **Firebase**. It's designed to manage tasks and projects efficiently.
+This Task Manager application is a full-stack project built using Laravel (backend API) and React (frontend), with authentication via Firebase. It is designed to manage tasks and projects efficiently.
+
+## ✨ Main Features
+
+- **User Authentication**: Register and login using Firebase Authentication.
+- **Task Management (CRUD)**: Create, Read, Update, and Delete tasks.
+- **Project Management (CRUD)**: Create, Read, Update, and Delete projects.
+- **Task & Project Relationship**: Tasks can be linked to specific projects, with a “Not in any project” option.
+- **Optimistic UI**: CRUD operations on frontend feel instant with dynamic updates to task and project counts.
+- **Session Management**: Uses Laravel Sanctum for fast API authentication after initial login.
+- **Project Task Caching**: Tasks on the mini-dashboard are cached for instant reloads on repeat visits.
+- **Modern Layout**: Responsive user interface with sidebar, header, search bar, icons, and custom modals with backdrop blur using Tailwind CSS v4.
 
 ---
 
-## Key Features
+## ⚙️ Prerequisites
 
-- **User Authentication**: Register and log in using Firebase Authentication.
-- **Task Management (CRUD)**: Create, View, Edit, and Delete tasks.
-- **Project Management (CRUD)**: Create, View, Edit, and Delete projects.
-- **Task & Project Relation**: Tasks can be linked to specific projects, with an option for "Not in any project."
-- **Optimistic UI**: CRUD operations (Task & Project) on the frontend feel instant, with dynamic updates to task and project counts.
-- **Session Management**: Utilizes Laravel Sanctum for fast API authentication after the initial login.
-- **Project Task Caching**: Project tasks in the mini-dashboard are cached for instant loading on repeat visits.
-- **Modern Layout**: A responsive user interface featuring a sidebar, header, search bar, icons, and custom modals with backdrop blur effects using **Tailwind CSS v4**.
+Make sure the following software is installed on your system:
 
----
-
-## Prerequisites
-
-Before getting started, ensure you have the following software installed on your system:
-
-- **Laragon**: (Recommended for Windows) A local development environment that includes Apache, MySQL, and PHP.
-  - Ensure **PHP version 8.2 or higher** in your Laragon setup.
-  - Ensure **MySQL version 8.0 or higher** in your Laragon setup.
+- **Laragon**: (Recommended for Windows) Local development environment including Apache, MySQL, and PHP.
+- **PHP**: Version 8.2 or higher.
+- **MySQL**: Version 8.0 or higher.
 - **Composer**: Dependency manager for PHP.
-- **Node.js**: (Version 20.19.0 or higher, latest LTS version recommended) JavaScript runtime environment.
-  - Ensure the Node.js version used by your terminal matches the requirement (especially if using Laragon, make sure Laragon's Node.js PATH is prioritized).
-- **npm**: Package manager for Node.js (usually installed with Node.js).
+- **Node.js**: Version 20.19.0 or higher (Latest LTS recommended).
+- **npm**: Comes with Node.js.
 - **Git**: Version control system.
-- **Code Editor**: (VS Code recommended)
+- **Code Editor**: (VS Code recommended).
+
+> ⚠️ If using Laragon, ensure your terminal prioritizes the Laragon's Node.js version in PATH.
 
 ---
 
-## Firebase Project Setup
+## 🔐 Firebase Project Setup
 
-This application uses Firebase Authentication for user management. You'll need to set up your own Firebase project.
+This app uses **Firebase Authentication** for user management.
 
-### Create a New Firebase Project
+### 1. Create New Firebase Project
 
-1.  Open the [Firebase Console](https://console.firebase.google.com/).
-2.  Click "Add project" and follow the steps. Name your project (e.g., `task-manager-app-yourname`).
-3.  Disable Google Analytics for simplicity if desired.
+- Go to [Firebase Console](https://console.firebase.google.com/)
+- Click "Add project" and follow the steps. Name your project (e.g., `task-manager-app-yourname`).
+- You may disable Google Analytics for simplicity.
 
-### Enable Email/Password Authentication
+### 2. Enable Email/Password Authentication
 
-1.  In your Firebase project's Console, navigate to **Build > Authentication**.
-2.  Select the "Sign-in method" tab.
-3.  Enable the "Email/Password" method by setting it to **ON**.
-4.  **Important**: Click the **Save** button.
+- In your Firebase Console, navigate to **Build > Authentication**.
+- Go to the **Sign-in method** tab.
+- Enable **Email/Password** sign-in method.
+- **Important**: Click **Save**.
 
-### Get Firebase Credentials (Client-side)
+### 3. Get Firebase Credentials (Client-side)
 
-1.  In the Firebase Console, go to **Project settings** (gear icon) > **Project settings**.
-2.  Scroll down to the "Your apps" section.
-3.  Click the Web icon (`</>`) to register a new web app. Give it a name (e.g., `task-manager-frontend`).
-4.  You will receive a `firebaseConfig` object. Copy all the values for `apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId`, and `appId`.
+- Go to **Project Settings** (gear icon).
+- Scroll down to **Your apps**.
+- Click the **Web (</>)** icon to register a web app.
+- You'll get a `firebaseConfig` object.
+- Copy the values: `apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId`, `appId`.
 
-### Get Firebase Credentials (Server-side - Service Account Key)
+### 4. Get Firebase Credentials (Server-side - Service Account)
 
-1.  In the Firebase Console, go to **Project settings > Service accounts**.
-2.  Click the "**Generate new private key**" button and confirm. This will download a JSON file (e.g., `[project-id]-firebase-adminsdk-xxxxx.json`). Save this file securely!
+- Go to **Project Settings > Service accounts**.
+- Click **Generate new private key**, confirm and download the `.json` file (e.g., `yourproject-firebase-adminsdk-xxxxx.json`).
+- Keep this file **secure**.
 
 ---
 
-## Installation and Setup
+## 📦 Installation and Setup
 
-This project is a monorepo, meaning the Laravel backend and React frontend are within a single Git repository.
+This is a **monorepo**: Laravel (backend) and React (frontend) are in the same Git repo.
 
-### Clone Repository
+### 🧬 Clone the Repository
 
 ```bash
-git clone [https://github.com/your-username/Task-Manager-Fullstack-App.git](https://github.com/your-username/Task-Manager-Fullstack-App.git)
+git clone https://github.com/GabrielNathanael/Task-Manager-Fullstack-App.git
 cd Task-Manager-Fullstack-App
 ```
 
-Backend Setup (Laravel)
-Enter Backend Directory:
+---
 
-Bash
+## 🔧 Backend Setup (Laravel)
 
+### 1. Enter Backend Directory
+
+```bash
 cd task-manager-backend
-Install Composer Dependencies:
+```
 
-Bash
+### 2. Install Composer Dependencies
 
+```bash
 composer install
-Configure Environment File:
+```
 
-Copy the .env.example file to .env:
+### 3. Setup `.env` File
 
-Bash
-
+```bash
 cp .env.example .env
-Open the newly created .env file in your code editor.
+```
 
-Set Laravel Application Key: If APP_KEY is empty, run:
+Edit `.env` in your code editor.
 
-Bash
+### 4. Generate Laravel App Key
 
+If `APP_KEY` is empty, run:
+
+```bash
 php artisan key:generate
-Configure MySQL Database: Adjust the following lines to your Laragon settings:
+```
 
+### 5. Configure MySQL Database
+
+Adjust these values in `.env`:
+
+```env
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=task_manager_db # You can change this name
+DB_DATABASE=task_manager_db
 DB_USERNAME=root
 DB_PASSWORD=
-Configure Firebase Credentials (Server-side):
+```
 
-Move the Service Account JSON file you downloaded from the Firebase Console to the folder: task-manager-backend/storage/app/firebase/ (create the firebase folder if it doesn't exist).
+> ⚠️ Create the database manually in MySQL first (e.g., via phpMyAdmin or MySQL CLI).
 
-Update the lines in .env with the correct path and Project ID:
+### 6. Setup Firebase Credentials (Server-side)
 
-FIREBASE_CREDENTIALS=firebase/[your_json_file_name].json # Example: firebase/task-manager-app-59f66-firebase-adminsdk-xxxxx.json
-FIREBASE_PROJECT_ID=your-firebase-project-id # Example: task-manager-app-59f66
-Run Database Migrations:
+- Move the downloaded Firebase service account JSON file to:
 
-Ensure MySQL in your Laragon is running.
+```
+task-manager-backend/storage/app/firebase/
+```
 
-Create the database in MySQL (e.g., task_manager_db) via phpMyAdmin or the MySQL terminal.
+- Update these lines in `.env`:
 
-Run migrations to create all tables (this will delete existing data if tables already exist):
+```env
+FIREBASE_CREDENTIALS=firebase/your-firebase-adminsdk.json
+FIREBASE_PROJECT_ID=your-firebase-project-id
+```
 
-Bash
+### 7. Run Database Migrations
 
+```bash
 php artisan migrate:fresh --seed
-Backend Setup Complete.
+```
 
-Frontend Setup (React)
-Return to Monorepo Root Directory:
+> This will wipe existing tables and re-seed fresh data.
 
-Bash
+✅ Backend is now ready.
 
+---
+
+## 🖼 Frontend Setup (React)
+
+### 1. Return to Project Root
+
+```bash
 cd ..
-Enter Frontend Directory:
+```
 
-Bash
+### 2. Enter Frontend Directory
 
+```bash
 cd task-manager-frontend
-Install npm Dependencies:
+```
 
-Bash
+### 3. Install npm Dependencies
 
+```bash
 npm install
-Configure Tailwind CSS v4:
+```
 
-To install and configure Tailwind CSS v4 with Vite, follow the official guide: https://tailwindcss.com/docs/installation/using-vite
+### 4. Tailwind CSS v4 Setup
 
-Configure Environment File:
+Follow the official Tailwind CSS v4 + Vite installation guide:
 
-Copy the .env.example file to .env.local:
+👉 https://tailwindcss.com/docs/installation/using-vite
 
-Bash
+### 5. Setup `.env.local`
 
+```bash
 cp .env.example .env.local
-Open the newly created .env.local file in your code editor.
+```
 
-Configure Firebase Credentials (Client-side): Fill in the values you obtained from the Firebase Console:
+Edit `.env.local` in your code editor with your Firebase config:
 
+```env
 VITE_FIREBASE_API_KEY="YOUR_API_KEY"
 VITE_FIREBASE_AUTHDOMAIN="YOUR_PROJECT_ID.firebaseapp.com"
 VITE_FIREBASE_PROJECTID="YOUR_PROJECT_ID"
 VITE_FIREBASE_STORAGEBUCKET="YOUR_PROJECT_ID.appspot.com"
 VITE_FIREBASE_MESSAGINGSENDERID="YOUR_MESSAGING_SENDER_ID"
 VITE_FIREBASE_APPID="YOUR_APP_ID"
+VITE_API_URL="http://localhost:8000/api"
+```
 
-VITE_API_URL="http://localhost:8000/api" # Adjust if your Laravel is running on a different port/domain
-Frontend Setup Complete.
+✅ Frontend is now ready.
 
-Running the Application
-Run Backend Server (Laravel)
-Open a new terminal.
+---
 
-Navigate to the task-manager-backend directory.
+## 🚀 Running the App
 
-Run:
+### 1. Start Backend Server (Laravel)
 
-Bash
-
+```bash
+cd task-manager-backend
 php artisan serve
-Run Frontend Server (React)
-Open another new terminal.
+```
 
-Navigate to the task-manager-frontend directory.
+### 2. Start Frontend Server (React)
 
-Run:
+Open a new terminal:
 
-Bash
-
+```bash
+cd task-manager-frontend
 npm run dev
-Access the Application
-Open your browser and navigate to http://localhost:5173/.
+```
 
-You will see the Login page. You can register a new account or log in with an existing one.
+---
+
+## 🌐 Access the Application
+
+Open your browser and go to:
+
+```
+http://localhost:5173/
+```
+
+You'll see the **Login page**. You can register a new account or login with existing credentials.
+
+---
+
+Enjoy building with your own fullstack Task Manager! 🧑‍💻
