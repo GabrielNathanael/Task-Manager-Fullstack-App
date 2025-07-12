@@ -33,7 +33,7 @@ const RegisterPage = () => {
         "http://localhost:8000/api/auth/firebase-login",
         {
           idToken: idToken,
-          username: username, // Kirim username yang diinput
+          username: username,
         }
       );
 

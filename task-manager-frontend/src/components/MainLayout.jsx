@@ -6,7 +6,6 @@ import { useSearch } from "../context/SearchContext";
 
 import {
   FolderIcon,
-  NotificationIcon,
   PlusIcon,
   LogoutIcon,
   DashboardIcon,
@@ -31,7 +30,6 @@ const Header = ({ userData, onLogout }) => {
           <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 size-4" />
         </div>
         <div className="flex items-center space-x-4">
-          <NotificationIcon className="size-5 text-gray-600" />
           <div className="w-9 h-9 rounded-full bg-gray-200 border-2 border-gray-300"></div>
           {userData ? (
             <span className="text-sm font-medium text-gray-700">

@@ -8,6 +8,7 @@ import {
   EllipsisIcon,
   EditIcon,
   DeleteIcon,
+  XIcon,
 } from "../assets/icons/Icons.jsx";
 import ProjectCardSkeleton from "../components/ProjectCardSkeleton.jsx";
 import { useNavigate } from "react-router-dom";
@@ -30,7 +31,6 @@ const COLOR_PALETTE = [
   "#F59E0B", // Amber
   "#EC4899", // Fuchsia
   "#14B8A6", // Teal
-  "#7C3AED", // Indigo
 ];
 
 const ProjectForm = ({ project, onSave, onClose }) => {
@@ -57,105 +57,178 @@ const ProjectForm = ({ project, onSave, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center p-4 z-50">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-        <h3 className="text-2xl font-bold mb-4 text-gray-800">
-          {project ? "Edit Project" : "Create New Project"}
-        </h3>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white/95 backdrop-blur-sm p-6 rounded-2xl shadow-2xl w-full max-w-md border border-white/20 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+
+        <div className="mb-6">
+          <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-1">
+            {project ? "Edit Project" : "Create New Project"}
+          </h3>
+          <p className="text-gray-500 text-xs">
+            {project
+              ? "Update your project details"
+              : "Start something amazing today"}
+          </p>
+        </div>
+
+        <div className="space-y-5">
+          <div className="group">
             <label
               htmlFor="name"
-              className="block text-gray-700 text-sm font-bold mb-2"
+              className="block text-sm font-semibold text-gray-700 mb-2 transition-colors group-focus-within:text-blue-600"
             >
               Project Name
             </label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full px-3 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 placeholder:text-gray-400 hover:bg-gray-50"
+                placeholder="Enter project name..."
+              />
+              <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 scale-x-0 group-focus-within:scale-x-100 transition-transform duration-300 rounded-full"></div>
+            </div>
           </div>
-          <div className="mb-4">
+
+          <div className="group">
             <label
               htmlFor="description"
-              className="block text-gray-700 text-sm font-bold mb-2"
+              className="block text-sm font-semibold text-gray-700 mb-2 transition-colors group-focus-within:text-blue-600"
             >
-              Description (Optional)
+              Description{" "}
+              <span className="text-gray-400 font-normal">(Optional)</span>
             </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
-            ></textarea>
+            <div className="relative">
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                className="w-full px-3 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 placeholder:text-gray-400 hover:bg-gray-50 resize-none"
+                placeholder="Describe your project..."
+              />
+              <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 scale-x-0 group-focus-within:scale-x-100 transition-transform duration-300 rounded-full"></div>
+            </div>
           </div>
-          <div className="mb-4">
-            <label
-              htmlFor="color"
-              className="block text-gray-700 text-sm font-bold mb-2"
-            >
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
               Label Color
             </label>
-            <div className="flex space-x-2">
+            <div className="grid grid-cols-8 gap-2">
               {COLOR_PALETTE.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
-                  className={`w-4 h-4 rounded-full border-2 ${
-                    color === c ? "border-black" : "border-transparent"
+                  className={`w-7 h-7 rounded-full border-2 transition-all duration-200 hover:scale-110 hover:shadow-lg ${
+                    color === c
+                      ? "border-gray-800 shadow-lg scale-110 ring-2 ring-gray-300"
+                      : "border-gray-200 hover:border-gray-300"
                   }`}
                   style={{ backgroundColor: c }}
+                  title={c}
                 />
               ))}
             </div>
+            {color && (
+              <div className="mt-2 text-xs text-gray-500 font-mono">
+                Selected: {color}
+              </div>
+            )}
           </div>
-          {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
-          <div className="flex justify-end space-x-2">
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center space-x-2">
+              <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-xs">!</span>
+              </div>
+              <p className="text-red-600 text-sm font-medium">{error}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-3 pt-3">
             <button
               type="button"
               onClick={onClose}
-              className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+              className="px-5 py-2.5 text-gray-600 hover:text-gray-800 font-semibold transition-colors duration-200 hover:bg-gray-50 rounded-xl"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
               disabled={isSubmitting}
+              onClick={handleSubmit}
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center space-x-2"
             >
-              {project ? "Update Project" : "Create Project"}
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Creating...</span>
+                </>
+              ) : (
+                <>
+                  <span>{project ? "Update Project" : "Create Project"}</span>
+                  <PlusIcon className="w-4 h-4" />
+                </>
+              )}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
 };
 
 const DeleteConfirmationModal = ({ taskId, onDeleteConfirm, onClose }) => (
-  <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center p-4 z-50">
-    <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
-      <h3 className="text-xl font-bold mb-4 text-gray-800">Confirm Deletion</h3>
-      <p className="text-gray-700 mb-6">
-        Are you sure you want to delete this project?
-      </p>
-      <div className="flex justify-end space-x-2">
+  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+    <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-100 animate-in zoom-in-95 duration-200">
+      <div className="flex justify-center mb-6">
+        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+          <svg
+            className="w-8 h-8 text-red-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </div>
+      </div>
+
+      <div className="text-center mb-8">
+        <h3 className="text-2xl font-bold mb-3 text-gray-900">
+          Confirm Deletion
+        </h3>
+        <p className="text-gray-600 text-lg leading-relaxed">
+          Are you sure you want to delete this project?
+        </p>
+        <p className="text-sm text-gray-500 mt-2">
+          This action cannot be undone.
+        </p>
+      </div>
+
+      <div className="flex gap-3">
         <button
           type="button"
           onClick={onClose}
-          className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+          className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
         >
           Cancel
         </button>
         <button
           type="button"
           onClick={() => onDeleteConfirm(taskId)}
-          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+          className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl"
         >
           Delete
         </button>
@@ -344,6 +417,15 @@ const ProjectPage = () => {
   const handleOpenMiniDashboard = (project) =>
     setSelectedProjectForMiniDashboard(project);
   const [projectToDelete, setProjectToDelete] = useState(null);
+  useEffect(() => {
+    if (error) {
+      const timeout = setTimeout(() => {
+        setError(null);
+      }, 3000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [error]);
 
   return (
     <MainLayout>
@@ -358,7 +440,12 @@ const ProjectPage = () => {
         </button>
       </div>
 
-      {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 mb-4 px-4 py-3 rounded-lg flex items-center justify-center gap-2 shadow-md transition-all duration-300 animate-in fade-in">
+          <XIcon className="w-4 h-4 text-red" />
+          <span className="font-medium">{error}</span>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

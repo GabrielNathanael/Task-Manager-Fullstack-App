@@ -9,6 +9,8 @@ import TaskListSkeleton from "../components/TaskListSkeleton.jsx";
 import { PlusIcon } from "../assets/icons/Icons.jsx";
 import { useSearch } from "../context/SearchContext";
 import Pagination from "../components/Pagination";
+import { X, Calendar, Tag, FileText, Clock } from "lucide-react";
+
 import {
   useReactTable,
   getCoreRowModel,
@@ -16,7 +18,7 @@ import {
   getPaginationRowModel,
   flexRender,
 } from "@tanstack/react-table";
-// Helper function to format status textect
+
 const formatStatusText = (status) => {
   if (!status) return "";
   return status
@@ -82,15 +84,29 @@ const TaskForm = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-        <h3 className="text-2xl font-bold mb-4 text-gray-800">Add New Task</h3>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white/95 backdrop-blur-md p-6 rounded-2xl shadow-2xl w-full max-w-md border border-white/20 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <X size={18} className="text-gray-500" />
+        </button>
+
+        <div className="mb-6">
+          <h3 className="text-xl font-bold text-gray-900 mb-1">Add New Task</h3>
+          <p className="text-sm text-gray-600">
+            Create a new task to keep track of your progress
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1">
             <label
               htmlFor="title"
-              className="block text-gray-700 text-sm font-bold mb-2"
+              className="flex items-center gap-2 text-xs font-semibold text-gray-700"
             >
+              <FileText size={14} />
               Title
             </label>
             <input
@@ -99,21 +115,24 @@ const TaskForm = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+              placeholder="Enter task title..."
+              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm"
             />
           </div>
-          <div className="mb-4">
+
+          <div className="space-y-1">
             <label
               htmlFor="project"
-              className="block text-gray-700 text-sm font-bold mb-2"
+              className="flex items-center gap-2 text-xs font-semibold text-gray-700"
             >
+              <Tag size={14} />
               Project
             </label>
             <select
               id="project"
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
-              className="shadow border rounded w-full py-2 px-3 text-gray-700 bg-white"
+              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm appearance-none cursor-pointer"
             >
               <option value="">Not in any project</option>
               {projects.map((project) => (
@@ -123,25 +142,31 @@ const TaskForm = ({
               ))}
             </select>
           </div>
-          <div className="mb-4">
+
+          <div className="space-y-1">
             <label
               htmlFor="description"
-              className="block text-gray-700 text-sm font-bold mb-2"
+              className="flex items-center gap-2 text-xs font-semibold text-gray-700"
             >
+              <FileText size={14} />
               Description
             </label>
             <textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
-            ></textarea>
+              rows="2"
+              placeholder="Add task description..."
+              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm resize-none"
+            />
           </div>
-          <div className="mb-4">
+
+          <div className="space-y-1">
             <label
               htmlFor="dueDate"
-              className="block text-gray-700 text-sm font-bold mb-2"
+              className="flex items-center gap-2 text-xs font-semibold text-gray-700"
             >
+              <Calendar size={14} />
               Due Date
             </label>
             <input
@@ -149,42 +174,57 @@ const TaskForm = ({
               id="dueDate"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm"
             />
           </div>
-          <div className="mb-6">
+
+          <div className="space-y-1">
             <label
               htmlFor="status"
-              className="block text-gray-700 text-sm font-bold mb-2"
+              className="flex items-center gap-2 text-xs font-semibold text-gray-700"
             >
+              <Clock size={14} />
               Status
             </label>
             <select
               id="status"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="shadow border rounded w-full py-2 px-3 text-gray-700 bg-white"
+              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm appearance-none cursor-pointer"
             >
               <option value="pending">Pending</option>
               <option value="in_progress">In Progress</option>
               <option value="completed">Completed</option>
             </select>
           </div>
-          {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
-          <div className="flex justify-end space-x-2">
+
+          {error && (
+            <div className="p-2.5 rounded-xl bg-red-50 border border-red-200">
+              <p className="text-red-600 text-xs font-medium">{error}</p>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-3">
             <button
               type="button"
               onClick={onClose}
-              className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+              className="flex-1 px-4 py-2.5 text-sm rounded-xl font-medium text-gray-700 bg-gray-100 hover:scale-105  hover:bg-gray-200 transition-all duration-200"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              className="flex-1 px-4 py-2.5 text-sm rounded-xl font-medium text-white bg-blue-500 hover:scale-105  hover:bg-blue-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               disabled={isSubmitting}
             >
-              Add Task
+              {isSubmitting ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Adding...
+                </div>
+              ) : (
+                "Add Task"
+              )}
             </button>
           </div>
         </form>
@@ -301,76 +341,80 @@ const TaskList = ({
       <div className="px-6 py-4 border-b border-gray-200">
         <h3 className="text-xl font-bold text-gray-800">Your Tasks</h3>
       </div>
-
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 table-fixed">
-          <thead className="bg-gray-50">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                      header.column.columnDef.meta?.align === "center"
-                        ? "text-center"
-                        : "text-left"
-                    }`}
-                  >
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext()
-                    )}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {table.getRowModel().rows.map((row) => (
-              <tr
-                key={row.id}
-                className={`${
-                  row.original.isOptimistic ? "opacity-50 animate-pulse" : ""
-                }`}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <td
-                    key={cell.id}
-                    className={`px-6 py-4 text-sm align-top ${
-                      cell.column.columnDef.meta?.align === "center"
-                        ? "text-center"
-                        : "text-left"
-                    }`}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
-            {table.getRowModel().rows.length === 0 && (
-              <tr>
-                <td
-                  colSpan={columns.length}
-                  className="px-6 py-8 text-center text-gray-600"
+      <div className="min-h-[280px] flex flex-col justify-between">
+        <div className="overflow-x-auto min-h-[320px]">
+          <table className="min-w-full divide-y divide-gray-200 table-fixed">
+            <thead className="bg-gray-50">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className={`px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                        header.column.columnDef.meta?.align === "center"
+                          ? "text-center"
+                          : "text-left"
+                      }`}
+                    >
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {table.getRowModel().rows.map((row) => (
+                <tr
+                  key={row.id}
+                  className={`${
+                    row.original.isOptimistic ? "opacity-50 animate-pulse" : ""
+                  }`}
                 >
-                  No tasks found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-      <div className="px-6 py-4">
-        <div className="flex flex-col items-center space-y-1">
-          <Pagination
-            pageIndex={table.getState().pagination.pageIndex}
-            pageCount={table.getPageCount()}
-            setPageIndex={(index) => table.setPageIndex(index)}
-          />
-          <p className="text-xs text-gray-500">
-            {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
-          </p>
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className={`px-6 py-4 text-sm align-top ${
+                        cell.column.columnDef.meta?.align === "center"
+                          ? "text-center"
+                          : "text-left"
+                      }`}
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+              {table.getRowModel().rows.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={columns.length}
+                    className="px-6 py-8 text-center text-gray-600"
+                  >
+                    No tasks found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-6 py-4">
+          <div className="flex flex-col items-center space-y-1">
+            <Pagination
+              pageIndex={table.getState().pagination.pageIndex}
+              pageCount={table.getPageCount()}
+              setPageIndex={(index) => table.setPageIndex(index)}
+            />
+            <p className="text-xs text-gray-500 mb-1 mt-1">
+              {table.getState().pagination.pageIndex + 1} of{" "}
+              {table.getPageCount()}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -407,15 +451,27 @@ const TaskEditModal = ({ task, onUpdate, onClose, projects }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center p-4 z-50">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-        <h3 className="text-2xl font-bold mb-4 text-gray-800">Edit Task</h3>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white/95 backdrop-blur-md p-6 rounded-2xl shadow-2xl w-full max-w-md border border-white/20 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <X size={18} className="text-gray-500" />
+        </button>
+
+        <div className="mb-6">
+          <h3 className="text-xl font-bold text-gray-900 mb-1">Edit Task</h3>
+          <p className="text-sm text-gray-600">Update your task details</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1">
             <label
               htmlFor="editTitle"
-              className="block text-gray-700 text-sm font-bold mb-2"
+              className="flex items-center gap-2 text-xs font-semibold text-gray-700"
             >
+              <FileText size={14} />
               Title
             </label>
             <input
@@ -424,21 +480,24 @@ const TaskEditModal = ({ task, onUpdate, onClose, projects }) => {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+              placeholder="Enter task title..."
+              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm"
             />
           </div>
-          <div className="mb-4">
+
+          <div className="space-y-1">
             <label
               htmlFor="editProject"
-              className="block text-gray-700 text-sm font-bold mb-2"
+              className="flex items-center gap-2 text-xs font-semibold text-gray-700"
             >
+              <Tag size={14} />
               Project
             </label>
             <select
               id="editProject"
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
-              className="shadow border rounded w-full py-2 px-3 text-gray-700 bg-white"
+              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm appearance-none cursor-pointer"
             >
               <option value="">Not in any project</option>
               {projects.map((project) => (
@@ -448,25 +507,31 @@ const TaskEditModal = ({ task, onUpdate, onClose, projects }) => {
               ))}
             </select>
           </div>
-          <div className="mb-4">
+
+          <div className="space-y-1">
             <label
               htmlFor="editDescription"
-              className="block text-gray-700 text-sm font-bold mb-2"
+              className="flex items-center gap-2 text-xs font-semibold text-gray-700"
             >
+              <FileText size={14} />
               Description
             </label>
             <textarea
               id="editDescription"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
-            ></textarea>
+              rows="2"
+              placeholder="Add task description..."
+              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm resize-none"
+            />
           </div>
-          <div className="mb-4">
+
+          <div className="space-y-1">
             <label
               htmlFor="editDueDate"
-              className="block text-gray-700 text-sm font-bold mb-2"
+              className="flex items-center gap-2 text-xs font-semibold text-gray-700"
             >
+              <Calendar size={14} />
               Due Date
             </label>
             <input
@@ -474,39 +539,47 @@ const TaskEditModal = ({ task, onUpdate, onClose, projects }) => {
               id="editDueDate"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm"
             />
           </div>
-          <div className="mb-6">
+
+          <div className="space-y-1">
             <label
               htmlFor="editStatus"
-              className="block text-gray-700 text-sm font-bold mb-2"
+              className="flex items-center gap-2 text-xs font-semibold text-gray-700"
             >
+              <Clock size={14} />
               Status
             </label>
             <select
               id="editStatus"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="shadow border rounded w-full py-2 px-3 text-gray-700 bg-white"
+              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm appearance-none cursor-pointer"
             >
               <option value="pending">Pending</option>
               <option value="in_progress">In Progress</option>
               <option value="completed">Completed</option>
             </select>
           </div>
-          {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
-          <div className="flex justify-end space-x-2">
+
+          {error && (
+            <div className="p-2.5 rounded-xl bg-red-50 border border-red-200">
+              <p className="text-red-600 text-xs font-medium">{error}</p>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-3">
             <button
               type="button"
               onClick={onClose}
-              className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+              className="flex-1 px-4 py-2.5 text-sm rounded-xl font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 hover:scale-105 transition-all duration-200"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              className="flex-1 px-4 py-2.5 text-sm rounded-xl font-medium text-white bg-blue-500 hover:scale-105  hover:bg-blue-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
             >
               Update Task
             </button>
@@ -518,24 +591,48 @@ const TaskEditModal = ({ task, onUpdate, onClose, projects }) => {
 };
 
 const DeleteConfirmationModal = ({ taskId, onDeleteConfirm, onClose }) => (
-  <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center p-4 z-50">
-    <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
-      <h3 className="text-xl font-bold mb-4 text-gray-800">Confirm Deletion</h3>
-      <p className="text-gray-700 mb-6">
-        Are you sure you want to delete this task?
-      </p>
-      <div className="flex justify-end space-x-2">
+  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+    <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-100 animate-in zoom-in-95 duration-200">
+      <div className="flex justify-center mb-6">
+        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+          <svg
+            className="w-8 h-8 text-red-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </div>
+      </div>
+      <div className="text-center mb-8">
+        <h3 className="text-2xl font-bold mb-3 text-gray-900">
+          Confirm Deletion
+        </h3>
+        <p className="text-gray-600 text-lg leading-relaxed">
+          Are you sure you want to delete this task?
+        </p>
+        <p className="text-sm text-gray-500 mt-2">
+          This action cannot be undone.
+        </p>
+      </div>
+      <div className="flex gap-3">
         <button
           type="button"
           onClick={onClose}
-          className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded"
+          className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
         >
           Cancel
         </button>
         <button
           type="button"
           onClick={() => onDeleteConfirm(taskId)}
-          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+          className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl"
         >
           Delete
         </button>
