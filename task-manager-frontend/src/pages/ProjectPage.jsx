@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { useSearch } from "../context/SearchContext";
 import MainLayout from "../components/MainLayout.jsx";
 import {
   PlusIcon,
@@ -215,6 +216,7 @@ const ProjectPage = () => {
   const [error, setError] = useState(null);
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
+  const { search } = useSearch();
   const [selectedProjectForMiniDashboard, setSelectedProjectForMiniDashboard] =
     useState(null);
   const [cachedTasksByProject, setCachedTasksByProject] = useState({});
@@ -366,21 +368,27 @@ const ProjectPage = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.length === 0 ? (
+          {projects.filter((project) =>
+            project.name.toLowerCase().includes(search.toLowerCase())
+          ).length === 0 ? (
             <p className="col-span-full text-gray-600 text-center py-8">
               No projects found. Create a new one!
             </p>
           ) : (
-            projects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                onOpenMiniDashboard={handleOpenMiniDashboard}
-                onEdit={handleEditProject}
-                onDelete={handleDeleteProject}
-                onConfirmDelete={() => setProjectToDelete(project)}
-              />
-            ))
+            projects
+              .filter((project) =>
+                project.name.toLowerCase().includes(search.toLowerCase())
+              )
+              .map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  onOpenMiniDashboard={handleOpenMiniDashboard}
+                  onEdit={handleEditProject}
+                  onDelete={handleDeleteProject}
+                  onConfirmDelete={() => setProjectToDelete(project)}
+                />
+              ))
           )}
         </div>
       )}
