@@ -59,8 +59,6 @@ const ProjectForm = ({ project, onSave, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="bg-white/95 backdrop-blur-sm p-6 rounded-2xl shadow-2xl w-full max-w-md border border-white/20 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
-
         <div className="mb-6">
           <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent mb-1">
             {project ? "Edit Project" : "Create New Project"}
@@ -90,7 +88,6 @@ const ProjectForm = ({ project, onSave, onClose }) => {
                 className="w-full px-3 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 placeholder:text-gray-400 hover:bg-gray-50"
                 placeholder="Enter project name..."
               />
-              <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 scale-x-0 group-focus-within:scale-x-100 transition-transform duration-300 rounded-full"></div>
             </div>
           </div>
 
@@ -111,7 +108,6 @@ const ProjectForm = ({ project, onSave, onClose }) => {
                 className="w-full px-3 py-2.5 bg-gray-50/50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200 placeholder:text-gray-400 hover:bg-gray-50 resize-none"
                 placeholder="Describe your project..."
               />
-              <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 scale-x-0 group-focus-within:scale-x-100 transition-transform duration-300 rounded-full"></div>
             </div>
           </div>
 
@@ -151,11 +147,11 @@ const ProjectForm = ({ project, onSave, onClose }) => {
             </div>
           )}
 
-          <div className="flex justify-end space-x-3 pt-3">
+          <div className="flex gap-3 pt-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 text-gray-600 hover:text-gray-800 font-semibold transition-colors duration-200 hover:bg-gray-50 rounded-xl"
+              className="flex-1 px-4 py-2.5 text-sm rounded-xl font-medium text-gray-700 bg-gray-100 hover:scale-105 hover:bg-gray-200 transition-all duration-200"
             >
               Cancel
             </button>
@@ -163,18 +159,17 @@ const ProjectForm = ({ project, onSave, onClose }) => {
               type="submit"
               disabled={isSubmitting}
               onClick={handleSubmit}
-              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center space-x-2"
+              className="flex-1 px-4 py-2.5 text-sm rounded-xl font-medium text-white bg-blue-500 hover:scale-105 hover:bg-blue-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
             >
               {isSubmitting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Creating...</span>
-                </>
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  {project ? "Updating..." : "Creating..."}
+                </div>
+              ) : project ? (
+                "Update Project"
               ) : (
-                <>
-                  <span>{project ? "Update Project" : "Create Project"}</span>
-                  <PlusIcon className="w-4 h-4" />
-                </>
+                "Create Project"
               )}
             </button>
           </div>

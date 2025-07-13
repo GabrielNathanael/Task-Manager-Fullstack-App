@@ -666,62 +666,124 @@ const ProjectMiniDashboardModal = ({
         )}
         {selectedTaskForDetail && (
           <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center p-4 z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-              <h3 className="text-2xl font-bold mb-4 text-gray-800">
-                {selectedTaskForDetail.title}
-              </h3>
-
-              <div className="mb-4">
-                <p className="text-gray-700 text-sm font-semibold">Project:</p>
-                <p className="text-gray-800">
-                  {selectedTaskForDetail.project?.name || "Not in any project"}
-                </p>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-gray-700 text-sm font-semibold">
-                  Description:
-                </p>
-                <p className="text-gray-800">
-                  {selectedTaskForDetail.description ||
-                    "No description provided."}
-                </p>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-gray-700 text-sm font-semibold">Status:</p>
-                <span
-                  className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    selectedTaskForDetail.status === "completed"
-                      ? "bg-green-100 text-green-800"
-                      : selectedTaskForDetail.status === "in_progress"
-                      ? "bg-blue-100 text-blue-800"
-                      : "bg-yellow-100 text-yellow-800"
-                  }`}
-                >
-                  {formatStatusText(selectedTaskForDetail.status)}
-                </span>
-              </div>
-
-              <div className="mb-6">
-                <p className="text-gray-700 text-sm font-semibold">Due Date:</p>
-                <p className="text-gray-800">
-                  {selectedTaskForDetail.due_date
-                    ? new Date(
-                        selectedTaskForDetail.due_date
-                      ).toLocaleDateString()
-                    : "N/A"}
-                </p>
-              </div>
-
-              <div className="flex justify-end">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+              <div className="relative bg-slate-800 rounded-t-2xl p-6 text-white">
                 <button
-                  type="button"
                   onClick={() => setSelectedTaskForDetail(null)}
-                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                  className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"
                 >
-                  Close
+                  <X className="w-5 h-5" />
                 </button>
+
+                <div className="flex items-center space-x-3">
+                  <div className="p-3 bg-slate-700 rounded-full">
+                    <FileText className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">
+                      {selectedTaskForDetail.title}
+                    </h3>
+                    <p className="text-slate-300 text-sm">Task Details</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Project */}
+                <div className="flex items-start space-x-4">
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <Tag className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-500 mb-1">
+                      Project
+                    </p>
+                    <p className="text-gray-900 font-medium">
+                      {selectedTaskForDetail.project?.name ||
+                        "Not in any project"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div className="flex items-start space-x-4">
+                  <div className="p-2 bg-gray-50 rounded-lg">
+                    <FileText className="w-5 h-5 text-gray-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-500 mb-1">
+                      Description
+                    </p>
+                    <p className="text-gray-900 leading-relaxed">
+                      {selectedTaskForDetail.description ||
+                        "No description provided."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div className="flex items-start space-x-4">
+                  <div className="p-2 bg-purple-50 rounded-lg">
+                    <Clock className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-500 mb-2">
+                      Status
+                    </p>
+                    <span
+                      className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        selectedTaskForDetail.status === "completed"
+                          ? "bg-green-100 text-green-800"
+                          : selectedTaskForDetail.status === "in_progress"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {formatStatusText(selectedTaskForDetail.status)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Due Date */}
+                <div className="flex items-start space-x-4">
+                  <div className="p-2 bg-orange-50 rounded-lg">
+                    <Calendar className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-500 mb-1">
+                      Due Date
+                    </p>
+                    <p className="text-gray-900 font-medium">
+                      {selectedTaskForDetail.due_date
+                        ? (() => {
+                            const date = new Date(
+                              selectedTaskForDetail.due_date
+                            ).toLocaleDateString("en-GB", {
+                              weekday: "long",
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                              timeZone: "Asia/Jakarta",
+                            });
+                            const parts = date.split(" ");
+                            return `${parts[0]}, ${parts.slice(1).join(" ")}`;
+                          })()
+                        : "N/A"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100 p-6">
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTaskForDetail(null)}
+                    className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           </div>
