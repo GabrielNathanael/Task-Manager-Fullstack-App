@@ -42,7 +42,7 @@ class TaskController extends Controller
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'status' => 'nullable|in:pending,in_progress,completed',
+            'status' => 'required|in:pending,in_progress,completed',
             'due_date' => 'nullable|date',
             'project_id' => 'nullable|exists:projects,id',
         ]);

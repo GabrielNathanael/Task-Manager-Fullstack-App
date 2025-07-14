@@ -122,11 +122,11 @@ const MainLayout = ({ children }) => {
   if (loadingAuth) return null;
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col font-inter">
+    <div className="min-h-screen bg-gray-100 flex flex-col font-manrope">
       <Header userData={userData} onLogout={handleLogout} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 p-8 overflow-y-auto bg-gray-100">
+        <main className="flex-1 p-8 overflow-y-auto bg-indigo-50">
           {children}
         </main>
       </div>

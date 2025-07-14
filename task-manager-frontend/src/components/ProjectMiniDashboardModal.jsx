@@ -666,8 +666,8 @@ const ProjectMiniDashboardModal = ({
         )}
         {selectedTaskForDetail && (
           <div className="fixed inset-0 bg-white/30 backdrop-blur-md flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-              <div className="relative bg-slate-800 rounded-t-2xl p-6 text-white">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+              <div className="relative bg-slate-800 rounded-t-2xl p-6 text-white flex-shrink-0">
                 <button
                   onClick={() => setSelectedTaskForDetail(null)}
                   className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"
@@ -688,7 +688,7 @@ const ProjectMiniDashboardModal = ({
                 </div>
               </div>
 
-              <div className="p-6 space-y-6">
+              <div className="p-6 space-y-6 overflow-y-auto flex-1 min-h-0">
                 {/* Project */}
                 <div className="flex items-start space-x-4">
                   <div className="p-2 bg-blue-50 rounded-lg">
@@ -705,7 +705,6 @@ const ProjectMiniDashboardModal = ({
                   </div>
                 </div>
 
-                {/* Description */}
                 <div className="flex items-start space-x-4">
                   <div className="p-2 bg-gray-50 rounded-lg">
                     <FileText className="w-5 h-5 text-gray-600" />
@@ -720,8 +719,6 @@ const ProjectMiniDashboardModal = ({
                     </p>
                   </div>
                 </div>
-
-                {/* Status */}
                 <div className="flex items-start space-x-4">
                   <div className="p-2 bg-purple-50 rounded-lg">
                     <Clock className="w-5 h-5 text-purple-600" />
@@ -743,8 +740,6 @@ const ProjectMiniDashboardModal = ({
                     </span>
                   </div>
                 </div>
-
-                {/* Due Date */}
                 <div className="flex items-start space-x-4">
                   <div className="p-2 bg-orange-50 rounded-lg">
                     <Calendar className="w-5 h-5 text-orange-600" />
@@ -773,8 +768,7 @@ const ProjectMiniDashboardModal = ({
                   </div>
                 </div>
               </div>
-
-              <div className="border-t border-gray-100 p-6">
+              <div className="border-t border-gray-100 p-6 flex-shrink-0">
                 <div className="flex justify-end">
                   <button
                     type="button"

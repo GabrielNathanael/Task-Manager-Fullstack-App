@@ -10,6 +10,7 @@ import { PlusIcon } from "../assets/icons/Icons.jsx";
 import { useSearch } from "../context/SearchContext";
 import Pagination from "../components/Pagination";
 import { X, Calendar, Tag, FileText, Clock } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   useReactTable,
@@ -644,8 +645,8 @@ const DeleteConfirmationModal = ({ taskId, onDeleteConfirm, onClose }) => (
 const TaskDetailModal = ({ task, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="relative bg-slate-800 rounded-t-2xl p-6 text-white">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
+        <div className="relative bg-slate-800 rounded-t-2xl p-6 text-white flex-shrink-0">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 hover:bg-white/10 rounded-full transition-colors"
@@ -664,7 +665,7 @@ const TaskDetailModal = ({ task, onClose }) => {
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1 min-h-0">
           <div className="flex items-start space-x-4">
             <div className="p-2 bg-blue-50 rounded-lg">
               <Tag className="w-5 h-5 text-blue-600" />
@@ -676,6 +677,7 @@ const TaskDetailModal = ({ task, onClose }) => {
               </p>
             </div>
           </div>
+
           <div className="flex items-start space-x-4">
             <div className="p-2 bg-gray-50 rounded-lg">
               <FileText className="w-5 h-5 text-gray-600" />
@@ -709,6 +711,7 @@ const TaskDetailModal = ({ task, onClose }) => {
               </span>
             </div>
           </div>
+
           <div className="flex items-start space-x-4">
             <div className="p-2 bg-orange-50 rounded-lg">
               <Calendar className="w-5 h-5 text-orange-600" />
@@ -737,7 +740,7 @@ const TaskDetailModal = ({ task, onClose }) => {
           </div>
         </div>
 
-        <div className="border-t border-gray-100 p-6">
+        <div className="border-t border-gray-100 p-6 flex-shrink-0">
           <div className="flex justify-end">
             <button
               type="button"
@@ -752,15 +755,47 @@ const TaskDetailModal = ({ task, onClose }) => {
     </div>
   );
 };
-
 const DashboardPage = () => {
   const { search, setSearch } = useSearch();
   const navigate = useNavigate();
   const { currentUser, loadingAuth, isAuthenticated, handleLogout } = useAuth();
-  const [tasks, setTasks] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
+
+  // Fetch Tasks
+  const {
+    data: tasksData,
+    isLoading: isLoadingTasks,
+    error: tasksError,
+  } = useQuery({
+    queryKey: ["tasks"],
+    queryFn: async () => {
+      const token = localStorage.getItem("sanctum_token");
+      const res = await axios.get("http://localhost:8000/api/tasks", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data.tasks;
+    },
+  });
+
+  // Fetch Projects
+  const {
+    data: projectsData,
+    isLoading: isLoadingProjects,
+    error: projectsError,
+  } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      const token = localStorage.getItem("sanctum_token");
+      const res = await axios.get("http://localhost:8000/api/projects", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data.projects;
+    },
+  });
+
+  // fallback
+  const tasks = tasksData || [];
+  const projects = projectsData || [];
   const [editingTask, setEditingTask] = useState(null);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState(null);
@@ -773,13 +808,17 @@ const DashboardPage = () => {
   const handleOptimisticAdd = (optimisticTask) => {
     const project = projects.find((p) => p.id === optimisticTask.project_id);
     const taskWithProject = { ...optimisticTask, project };
-    setTasks((prev) => [taskWithProject, ...prev]);
+
+    queryClient.setQueryData(["tasks"], (old = []) => [
+      taskWithProject,
+      ...old,
+    ]);
   };
 
   const handleTaskChange = (tempId, newTask) => {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === tempId ? { ...newTask, isOptimistic: false } : t
+    queryClient.setQueryData(["tasks"], (old = []) =>
+      old.map((task) =>
+        task.id === tempId ? { ...newTask, isOptimistic: false } : task
       )
     );
   };
@@ -789,48 +828,58 @@ const DashboardPage = () => {
   const handleShowTaskDetail = (task) => setSelectedTaskForDetail(task);
 
   const onDeleteConfirm = async (taskId) => {
-    const originalTasks = [...tasks];
-    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+    const previousTasks = queryClient.getQueryData(["tasks"]);
+    queryClient.setQueryData(["tasks"], (old = []) =>
+      old.filter((task) => task.id !== taskId)
+    );
     setTaskToDelete(null);
+
     try {
-      const authToken = localStorage.getItem("sanctum_token");
+      const token = localStorage.getItem("sanctum_token");
       await axios.delete(`http://localhost:8000/api/tasks/${taskId}`, {
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
     } catch (err) {
+      queryClient.setQueryData(["tasks"], previousTasks); // rollback
       setError("Failed to delete task.");
-      setTasks(originalTasks);
     }
   };
 
   const handleUpdateTask = async (taskId, updatedData) => {
-    const originalTasks = [...tasks];
+    const previousTasks = queryClient.getQueryData(["tasks"]);
     const project = projects.find((p) => p.id === updatedData.project_id);
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
+
+    // Optimistic update
+    queryClient.setQueryData(["tasks"], (old = []) =>
+      old.map((task) =>
         task.id === taskId
           ? { ...task, ...updatedData, project, isOptimistic: true }
           : task
       )
     );
     setEditingTask(null);
+
     try {
-      const authToken = localStorage.getItem("sanctum_token");
+      const token = localStorage.getItem("sanctum_token");
       const response = await axios.put(
         `http://localhost:8000/api/tasks/${taskId}`,
         updatedData,
-        { headers: { Authorization: `Bearer ${authToken}` } }
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
-      setTasks((prevTasks) =>
-        prevTasks.map((task) =>
+
+      // Replace optimistic with real data
+      queryClient.setQueryData(["tasks"], (old = []) =>
+        old.map((task) =>
           task.id === taskId
             ? { ...response.data.task, isOptimistic: false }
             : task
         )
       );
     } catch (err) {
+      queryClient.setQueryData(["tasks"], previousTasks); // rollback
       setError("Failed to update task.");
-      setTasks(originalTasks);
     }
   };
 
@@ -883,9 +932,13 @@ const DashboardPage = () => {
         </button>
       </div>
 
-      {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+      {(tasksError || projectsError) && (
+        <p className="text-red-500 text-center mb-4">
+          {tasksError?.message || projectsError?.message}
+        </p>
+      )}
 
-      {isLoading ? (
+      {isLoadingTasks || isLoadingProjects ? (
         <TaskListSkeleton />
       ) : (
         <TaskList
