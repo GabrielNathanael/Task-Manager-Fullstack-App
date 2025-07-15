@@ -55,12 +55,15 @@ const Pagination = ({ pageIndex, pageCount, setPageIndex }) => {
 
       {pages.map((p, i) =>
         typeof p === "string" ? (
-          <span key={i} className="px-2 py-1 text-sm text-gray-500">
+          <span
+            key={`ellipsis-${i}`}
+            className="px-2 py-1 text-sm text-gray-500"
+          >
             ...
           </span>
         ) : (
           <button
-            key={p}
+            key={`page-${p}`}
             onClick={() => setPageIndex(p - 1)}
             className={`px-1.5 py-0.5 text-sm border rounded ${
               p - 1 === pageIndex ? "bg-black text-white" : ""

@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { auth } from "../config/firebase";
-import { signOut } from "firebase/auth";
 import { useAuth } from "../context/AuthContext";
 import MainLayout from "../components/MainLayout.jsx";
 import TaskListSkeleton from "../components/TaskListSkeleton.jsx";
@@ -43,12 +41,32 @@ const TaskForm = ({
   const [projectId, setProjectId] = useState("");
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [titleError, setTitleError] = useState("");
+  const [statusError, setStatusError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setTitleError("");
+    setStatusError("");
     setError(null);
+
+    let isValid = true;
+
+    if (!title.trim()) {
+      setTitleError("Title is required.");
+      isValid = false;
+    }
+
+    if (!status) {
+      setStatusError("Status is required.");
+      isValid = false;
+    }
+
+    if (!isValid) return;
+
     setIsSubmitting(true);
     const selectedProjectId = projectId === "" ? null : parseInt(projectId, 10);
+
     const optimisticTask = {
       id: `temp-${Date.now()}`,
       title,
@@ -59,8 +77,10 @@ const TaskForm = ({
       user_id: currentUser.uid,
       isOptimistic: true,
     };
+
     onOptimisticAdd(optimisticTask);
     onClose();
+
     try {
       const authToken = localStorage.getItem("sanctum_token");
       const response = await axios.post(
@@ -110,15 +130,18 @@ const TaskForm = ({
               <FileText size={14} />
               Title
             </label>
+
             <input
               type="text"
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              required
               placeholder="Enter task title..."
               className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm"
             />
+            {titleError && (
+              <p className="text-red-600 text-xs font-medium">{titleError}</p>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -187,6 +210,9 @@ const TaskForm = ({
               <Clock size={14} />
               Status
             </label>
+            {statusError && (
+              <p className="text-red-600 text-xs font-medium">{statusError}</p>
+            )}
             <select
               id="status"
               value={status}
@@ -369,7 +395,7 @@ const TaskList = ({
             <tbody className="bg-white divide-y divide-gray-200">
               {table.getRowModel().rows.map((row) => (
                 <tr
-                  key={row.id}
+                  key={row.original.id || row.id}
                   className={`${
                     row.original.isOptimistic ? "opacity-50 animate-pulse" : ""
                   }`}
@@ -433,9 +459,22 @@ const TaskEditModal = ({ task, onUpdate, onClose, projects }) => {
   const [projectId, setProjectId] = useState(task.project_id || "");
   const [error, setError] = useState(null);
 
+  const [titleError, setTitleError] = useState("");
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setTitleError("");
+
+    let isValid = true;
+
+    if (!title.trim()) {
+      setTitleError("Title is required.");
+      isValid = false;
+    }
+
+    if (!isValid) return;
+
     const selectedProjectId = projectId === "" ? null : parseInt(projectId, 10);
     try {
       await onUpdate(task.id, {
@@ -480,10 +519,12 @@ const TaskEditModal = ({ task, onUpdate, onClose, projects }) => {
               id="editTitle"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              required
               placeholder="Enter task title..."
               className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm"
             />
+            {titleError && (
+              <p className="text-red-600 text-xs font-medium">{titleError}</p>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -775,6 +816,7 @@ const DashboardPage = () => {
       });
       return res.data.tasks;
     },
+    staleTime: 1000 * 60 * 5,
   });
 
   // Fetch Projects
@@ -886,38 +928,8 @@ const DashboardPage = () => {
   useEffect(() => {
     if (!loadingAuth && !isAuthenticated) {
       navigate("/login");
-      return;
     }
-
-    const fetchInitialData = async () => {
-      if (isAuthenticated) {
-        setIsLoading(true);
-        setError(null);
-        try {
-          const authToken = localStorage.getItem("sanctum_token");
-          const [tasksResponse, projectsResponse] = await Promise.all([
-            axios.get("http://localhost:8000/api/tasks", {
-              headers: { Authorization: `Bearer ${authToken}` },
-            }),
-            axios.get("http://localhost:8000/api/projects", {
-              headers: { Authorization: `Bearer ${authToken}` },
-            }),
-          ]);
-          setTasks(tasksResponse.data.tasks);
-          setProjects(projectsResponse.data.projects);
-        } catch (err) {
-          setError("Could not fetch initial data.");
-          if (err.response?.status === 401) handleLogout();
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    if (!loadingAuth) {
-      fetchInitialData();
-    }
-  }, [loadingAuth, isAuthenticated, navigate, handleLogout]);
+  }, [loadingAuth, isAuthenticated, navigate]);
 
   return (
     <MainLayout>

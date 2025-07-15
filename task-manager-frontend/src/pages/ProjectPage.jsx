@@ -13,6 +13,11 @@ import {
 import ProjectCardSkeleton from "../components/ProjectCardSkeleton.jsx";
 import { useNavigate } from "react-router-dom";
 import { ProjectMiniDashboardModal } from "../components/ProjectMiniDashboardModal.jsx";
+import { useInView } from "react-intersection-observer";
+import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { AnimatePresence } from "framer-motion";
 
 const COLOR_PALETTE = [
   "#60A5FA", // Blue
@@ -32,6 +37,42 @@ const COLOR_PALETTE = [
   "#EC4899", // Fuchsia
   "#14B8A6", // Teal
 ];
+
+const AnimatedProjectCard = ({
+  project,
+  index,
+  onOpenMiniDashboard,
+  onEdit,
+  onDelete,
+  onConfirmDelete,
+  isModalOpen,
+}) => {
+  const [ref, inView] = useInView({
+    threshold: 0.05,
+    triggerOnce: true,
+  });
+
+  return (
+    <motion.div
+      layout
+      ref={ref}
+      initial={{ opacity: 0, y: 30 }}
+      animate={
+        inView && !isModalOpen ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }
+      }
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3 }}
+    >
+      <ProjectCard
+        project={project}
+        onOpenMiniDashboard={onOpenMiniDashboard}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onConfirmDelete={onConfirmDelete}
+      />
+    </motion.div>
+  );
+};
 
 const ProjectForm = ({ project, onSave, onClose }) => {
   const [name, setName] = useState(project ? project.name : "");
@@ -279,14 +320,13 @@ const ProjectCard = ({
 const ProjectPage = () => {
   const { isAuthenticated, loadingAuth, currentUser, handleLogout } = useAuth();
   const navigate = useNavigate();
-  const [projects, setProjects] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const { search } = useSearch();
   const [selectedProjectForMiniDashboard, setSelectedProjectForMiniDashboard] =
     useState(null);
+  const [projectToDelete, setProjectToDelete] = useState(null);
   const [cachedTasksByProject, setCachedTasksByProject] = useState({});
   const lastProjectCountRef = useRef(6);
   useEffect(() => {
@@ -299,32 +339,28 @@ const ProjectPage = () => {
       navigate("/login");
       return;
     }
-    if (isAuthenticated && currentUser) {
-      fetchProjects();
-    }
   }, [isAuthenticated, loadingAuth, currentUser, navigate]);
 
-  const fetchProjects = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
+  const {
+    data: projectsData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["projects"],
+    queryFn: async () => {
       const authToken = localStorage.getItem("sanctum_token");
       const response = await axios.get("http://localhost:8000/api/projects", {
         headers: { Authorization: `Bearer ${authToken}` },
       });
-      const fetchedProjects = response.data.projects;
+      const projects = response.data.projects;
 
-      lastProjectCountRef.current = fetchedProjects.length || 6;
+      lastProjectCountRef.current = projects.length || 6;
       localStorage.setItem("last_project_count", lastProjectCountRef.current);
 
-      setProjects(fetchedProjects);
-    } catch (err) {
-      setError("Failed to fetch projects.");
-      if (err.response?.status === 401) handleLogout();
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return projects;
+    },
+    staleTime: 1000 * 60 * 10,
+  });
 
   const updateProjectCount = (
     projectId,
@@ -332,7 +368,7 @@ const ProjectPage = () => {
     completedCount,
     updatedTasks
   ) => {
-    setProjects((prev) =>
+    queryClient.setQueryData(["projects"], (prev) =>
       prev.map((proj) =>
         proj.id === projectId
           ? {
@@ -343,34 +379,17 @@ const ProjectPage = () => {
           : proj
       )
     );
-    setCachedTasksByProject((prev) => ({
-      ...prev,
-      [projectId]: { projectId, tasks: updatedTasks },
-    }));
   };
+
+  const isAnyModalOpen =
+    showCreateProjectModal ||
+    editingProject ||
+    selectedProjectForMiniDashboard ||
+    projectToDelete;
 
   const handleSaveProject = async (data) => {
     const isCreate = !data.id;
-    const optimisticId = isCreate ? `temp-${Date.now()}` : data.id;
-    const originalProjects = [...projects];
-    if (isCreate) {
-      setProjects((prev) => [
-        {
-          ...data,
-          id: optimisticId,
-          tasks_count: 0,
-          completed_tasks_count: 0,
-          isOptimistic: true,
-        },
-        ...prev,
-      ]);
-    } else {
-      setProjects((prev) =>
-        prev.map((p) =>
-          p.id === data.id ? { ...p, ...data, isOptimistic: true } : p
-        )
-      );
-    }
+
     try {
       const authToken = localStorage.getItem("sanctum_token");
       const response = isCreate
@@ -380,38 +399,43 @@ const ProjectPage = () => {
         : await axios.put(
             `http://localhost:8000/api/projects/${data.id}`,
             data,
-            { headers: { Authorization: `Bearer ${authToken}` } }
+            {
+              headers: { Authorization: `Bearer ${authToken}` },
+            }
           );
 
-      setProjects((prev) => [
-        response.data.project,
-        ...prev.filter((p) => p.id !== optimisticId),
-      ]);
+      queryClient.setQueryData(["projects"], (old = []) => {
+        const newProject = response.data.project;
+        if (isCreate) {
+          return [newProject, ...old];
+        } else {
+          return old.map((p) => (p.id === newProject.id ? newProject : p));
+        }
+      });
     } catch (err) {
-      setError("Failed to save project.");
-      setProjects(originalProjects);
-      throw err;
+      throw new Error("Failed to save project.");
     }
   };
 
   const handleDeleteProject = async (projectId) => {
-    const originalProjects = [...projects];
-    setProjects((prev) => prev.filter((p) => p.id !== projectId));
     try {
       const authToken = localStorage.getItem("sanctum_token");
       await axios.delete(`http://localhost:8000/api/projects/${projectId}`, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
+
+      queryClient.setQueryData(["projects"], (old = []) =>
+        old.filter((p) => p.id !== projectId)
+      );
     } catch (err) {
-      setError("Failed to delete project.");
-      setProjects(originalProjects);
+      throw new Error("Failed to delete project.");
     }
   };
 
   const handleEditProject = (project) => setEditingProject(project);
   const handleOpenMiniDashboard = (project) =>
     setSelectedProjectForMiniDashboard(project);
-  const [projectToDelete, setProjectToDelete] = useState(null);
+
   useEffect(() => {
     if (error) {
       const timeout = setTimeout(() => {
@@ -449,30 +473,37 @@ const ProjectPage = () => {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.filter((project) =>
+        <motion.div
+          layout
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {projectsData?.filter((project) =>
             project.name.toLowerCase().includes(search.toLowerCase())
           ).length === 0 ? (
             <p className="col-span-full text-gray-600 text-center py-8">
               No projects found. Create a new one!
             </p>
           ) : (
-            projects
-              .filter((project) =>
-                project.name.toLowerCase().includes(search.toLowerCase())
-              )
-              .map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  onOpenMiniDashboard={handleOpenMiniDashboard}
-                  onEdit={handleEditProject}
-                  onDelete={handleDeleteProject}
-                  onConfirmDelete={() => setProjectToDelete(project)}
-                />
-              ))
+            <AnimatePresence>
+              {projectsData
+                .filter((project) =>
+                  project.name.toLowerCase().includes(search.toLowerCase())
+                )
+                .map((project, index) => (
+                  <AnimatedProjectCard
+                    key={project.id}
+                    project={project}
+                    index={index}
+                    isModalOpen={isAnyModalOpen}
+                    onOpenMiniDashboard={handleOpenMiniDashboard}
+                    onEdit={handleEditProject}
+                    onDelete={handleDeleteProject}
+                    onConfirmDelete={() => setProjectToDelete(project)}
+                  />
+                ))}
+            </AnimatePresence>
           )}
-        </div>
+        </motion.div>
       )}
 
       {showCreateProjectModal && (
