@@ -264,4 +264,4 @@ You'll see the **Login page**. You can register a new account or login with exis
 
 ![Dashboard Page](./dashboard.png)
 ![Project Page](./project.png)
-![Mini Dashboard](./mini-dashboard.png)
+![Mini Dashboard](./minidashboard.png)
