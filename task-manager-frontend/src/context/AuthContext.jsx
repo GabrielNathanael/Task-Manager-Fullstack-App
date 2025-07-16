@@ -1,12 +1,14 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { auth } from "../config/firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
+import { useQueryClient } from "@tanstack/react-query";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -20,6 +22,8 @@ export const AuthProvider = ({ children }) => {
     try {
       await signOut(auth);
       localStorage.removeItem("sanctum_token");
+      queryClient.clear();
+      setCurrentUser(null);
     } catch (error) {
       console.error("Error during logout:", error);
     }
