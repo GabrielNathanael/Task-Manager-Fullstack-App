@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { useSearch } from "../context/SearchContext";
+import { useQuery } from "@tanstack/react-query";
 
 import {
   FolderIcon,
@@ -85,39 +86,31 @@ const Sidebar = () => {
 
 const MainLayout = ({ children }) => {
   const { isAuthenticated, handleLogout, loadingAuth } = useAuth();
-  const [userData, setUserData] = useState(null);
   const navigate = useNavigate();
+
+  const { data: userData } = useQuery({
+    queryKey: ["currentUser"],
+    queryFn: async () => {
+      const token = localStorage.getItem("sanctum_token");
+      const res = await axios.get("http://localhost:8000/api/user", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data;
+    },
+    enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 10,
+    onError: (error) => {
+      if (error.response?.status === 401) {
+        handleLogout();
+      }
+    },
+  });
 
   useEffect(() => {
     if (!loadingAuth && !isAuthenticated) {
       navigate("/login");
     }
-
-    const fetchUserData = async () => {
-      if (isAuthenticated) {
-        try {
-          const authToken = localStorage.getItem("sanctum_token");
-          if (!authToken) {
-            handleLogout();
-            return;
-          }
-          const response = await axios.get("http://localhost:8000/api/user", {
-            headers: { Authorization: `Bearer ${authToken}` },
-          });
-          setUserData(response.data);
-        } catch (error) {
-          console.error("Failed to fetch user data in layout", error);
-          if (error.response?.status === 401) {
-            handleLogout();
-          }
-        }
-      }
-    };
-
-    if (!loadingAuth) {
-      fetchUserData();
-    }
-  }, [isAuthenticated, loadingAuth, navigate, handleLogout]);
+  }, [isAuthenticated, loadingAuth, navigate]);
 
   if (loadingAuth) return null;
 

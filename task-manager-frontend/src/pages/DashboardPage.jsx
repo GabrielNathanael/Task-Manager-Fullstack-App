@@ -37,7 +37,7 @@ const TaskForm = ({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [status, setStatus] = useState("pending");
+  const [status, setStatus] = useState("");
   const [projectId, setProjectId] = useState("");
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -219,6 +219,9 @@ const TaskForm = ({
               onChange={(e) => setStatus(e.target.value)}
               className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm appearance-none cursor-pointer"
             >
+              <option value="" disabled hidden>
+                -- Select Status --
+              </option>
               <option value="pending">Pending</option>
               <option value="in_progress">In Progress</option>
               <option value="completed">Completed</option>
@@ -450,7 +453,7 @@ const TaskList = ({
 
 const TaskEditModal = ({ task, onUpdate, onClose, projects }) => {
   const [title, setTitle] = useState(task.title);
-  const [description, setDescription] = useState(task.description);
+  const [description, setDescription] = useState(task.description || "");
   const formattedDueDate = task.due_date
     ? new Date(task.due_date).toISOString().split("T")[0]
     : "";
@@ -599,6 +602,9 @@ const TaskEditModal = ({ task, onUpdate, onClose, projects }) => {
               onChange={(e) => setStatus(e.target.value)}
               className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm appearance-none cursor-pointer"
             >
+              <option value="" disabled hidden>
+                -- Select Status --
+              </option>
               <option value="pending">Pending</option>
               <option value="in_progress">In Progress</option>
               <option value="completed">Completed</option>
@@ -858,23 +864,76 @@ const DashboardPage = () => {
   };
 
   const handleTaskChange = (tempId, newTask) => {
-    queryClient.setQueryData(["tasks"], (old = []) =>
-      old.map((task) =>
-        task.id === tempId ? { ...newTask, isOptimistic: false } : task
-      )
-    );
-  };
+    const project = projects.find((p) => p.id === newTask.project_id);
 
+    const finalTask = { ...newTask, project, isOptimistic: false };
+
+    queryClient.setQueryData(["tasks"], (old = []) =>
+      old.map((task) => (task.id === tempId ? finalTask : task))
+    );
+
+    if (project?.id) {
+      queryClient.setQueryData(["tasks", project.id], (old = []) => {
+        const isTempExist = old.some((task) => task.id === tempId);
+        return isTempExist
+          ? old.map((t) => (t.id === tempId ? finalTask : t))
+          : [finalTask, ...old];
+      });
+    }
+
+    if (project?.id) {
+      queryClient.setQueryData(["projects"], (old = []) =>
+        old.map((p) => {
+          if (p.id !== project.id) return p;
+          return {
+            ...p,
+            tasks_count: (p.tasks_count || 0) + 1,
+            completed_tasks_count:
+              newTask.status === "completed"
+                ? (p.completed_tasks_count || 0) + 1
+                : p.completed_tasks_count,
+          };
+        })
+      );
+    }
+  };
   const handleDeleteTask = (taskId) => setTaskToDelete(taskId);
   const handleEditTask = (task) => setEditingTask(task);
   const handleShowTaskDetail = (task) => setSelectedTaskForDetail(task);
 
   const onDeleteConfirm = async (taskId) => {
     const previousTasks = queryClient.getQueryData(["tasks"]);
+    const taskToDeleteObj = previousTasks.find((task) => task.id === taskId);
+
     queryClient.setQueryData(["tasks"], (old = []) =>
       old.filter((task) => task.id !== taskId)
     );
     setTaskToDelete(null);
+
+    if (taskToDeleteObj?.project?.id) {
+      const projectId = taskToDeleteObj.project.id;
+
+      queryClient.setQueryData(["tasks", projectId], (old = []) =>
+        (old || []).filter((task) => task.id !== taskId)
+      );
+
+      const updatedProjectTasks =
+        queryClient.getQueryData(["tasks", projectId]) || [];
+
+      queryClient.setQueryData(["projects"], (old = []) =>
+        old.map((p) =>
+          p.id === projectId
+            ? {
+                ...p,
+                tasks_count: updatedProjectTasks.length,
+                completed_tasks_count: updatedProjectTasks.filter(
+                  (t) => t.status === "completed"
+                ).length,
+              }
+            : p
+        )
+      );
+    }
 
     try {
       const token = localStorage.getItem("sanctum_token");
@@ -882,23 +941,75 @@ const DashboardPage = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
     } catch (err) {
-      queryClient.setQueryData(["tasks"], previousTasks); // rollback
-      setError("Failed to delete task.");
+      // Rollback
+      queryClient.setQueryData(["tasks"], previousTasks);
+      setTaskToDelete(null);
+      console.error("Failed to delete task:", err);
     }
   };
 
   const handleUpdateTask = async (taskId, updatedData) => {
     const previousTasks = queryClient.getQueryData(["tasks"]);
-    const project = projects.find((p) => p.id === updatedData.project_id);
+    const oldTask = previousTasks.find((t) => t.id === taskId);
+    const oldProjectId = oldTask?.project?.id;
+    const newProjectId = updatedData.project_id;
+    const isProjectChanged = oldProjectId !== newProjectId;
 
-    // Optimistic update
+    const newProject = projects.find((p) => p.id === newProjectId);
+
+    const optimisticTask = {
+      ...oldTask,
+      ...updatedData,
+      project: newProject,
+      isOptimistic: true,
+    };
+
     queryClient.setQueryData(["tasks"], (old = []) =>
-      old.map((task) =>
-        task.id === taskId
-          ? { ...task, ...updatedData, project, isOptimistic: true }
-          : task
-      )
+      old.map((t) => (t.id === taskId ? optimisticTask : t))
     );
+
+    if (isProjectChanged) {
+      queryClient.setQueryData(["tasks", oldProjectId], (old = []) =>
+        old.filter((t) => t.id !== taskId)
+      );
+      queryClient.setQueryData(["tasks", newProjectId], (old = []) => [
+        optimisticTask,
+        ...(old || []),
+      ]);
+    } else {
+      queryClient.setQueryData(["tasks", newProjectId], (old = []) =>
+        old.map((t) => (t.id === taskId ? optimisticTask : t))
+      );
+    }
+
+    if (isProjectChanged || oldTask.status !== updatedData.status) {
+      queryClient.setQueryData(["projects"], (old = []) =>
+        old.map((p) => {
+          if (p.id === oldProjectId) {
+            return {
+              ...p,
+              tasks_count: (p.tasks_count || 1) - 1,
+              completed_tasks_count:
+                oldTask.status === "completed"
+                  ? (p.completed_tasks_count || 1) - 1
+                  : p.completed_tasks_count,
+            };
+          }
+          if (p.id === newProjectId) {
+            return {
+              ...p,
+              tasks_count: (p.tasks_count || 0) + 1,
+              completed_tasks_count:
+                updatedData.status === "completed"
+                  ? (p.completed_tasks_count || 0) + 1
+                  : p.completed_tasks_count,
+            };
+          }
+          return p;
+        })
+      );
+    }
+
     setEditingTask(null);
 
     try {
@@ -911,13 +1022,18 @@ const DashboardPage = () => {
         }
       );
 
-      // Replace optimistic with real data
+      const updatedTask = {
+        ...response.data.task,
+        project: newProject,
+        isOptimistic: false,
+      };
+
       queryClient.setQueryData(["tasks"], (old = []) =>
-        old.map((task) =>
-          task.id === taskId
-            ? { ...response.data.task, isOptimistic: false }
-            : task
-        )
+        old.map((t) => (t.id === taskId ? updatedTask : t))
+      );
+
+      queryClient.setQueryData(["tasks", newProjectId], (old = []) =>
+        old.map((t) => (t.id === taskId ? updatedTask : t))
       );
     } catch (err) {
       queryClient.setQueryData(["tasks"], previousTasks); // rollback

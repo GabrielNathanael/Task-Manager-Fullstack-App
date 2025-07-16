@@ -58,10 +58,13 @@ const AnimatedProjectCard = ({
       ref={ref}
       initial={{ opacity: 0, y: 30 }}
       animate={
-        inView && !isModalOpen ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }
+        inView
+          ? isModalOpen
+            ? { opacity: 1, y: 0, transition: { duration: 0 } }
+            : { opacity: 1, y: 0, transition: { duration: 0.3 } }
+          : { opacity: 0, y: 30 }
       }
       exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.3 }}
     >
       <ProjectCard
         project={project}
@@ -379,6 +382,16 @@ const ProjectPage = () => {
           : proj
       )
     );
+
+    queryClient.setQueryData(["tasks", projectId], updatedTasks);
+
+    if (Array.isArray(updatedTasks)) {
+      queryClient.setQueryData(["tasks"], (prev = []) => {
+        const filtered = prev.filter((t) => t.project?.id !== projectId);
+
+        return [...updatedTasks, ...filtered];
+      });
+    }
   };
 
   const isAnyModalOpen =
@@ -406,10 +419,26 @@ const ProjectPage = () => {
 
       queryClient.setQueryData(["projects"], (old = []) => {
         const newProject = response.data.project;
+
         if (isCreate) {
-          return [newProject, ...old];
+          return [
+            {
+              ...newProject,
+              tasks_count: 0,
+              completed_tasks_count: 0,
+            },
+            ...old,
+          ];
         } else {
-          return old.map((p) => (p.id === newProject.id ? newProject : p));
+          return old.map((p) =>
+            p.id === newProject.id
+              ? {
+                  ...newProject,
+                  tasks_count: p.tasks_count,
+                  completed_tasks_count: p.completed_tasks_count,
+                }
+              : p
+          );
         }
       });
     } catch (err) {
@@ -427,6 +456,12 @@ const ProjectPage = () => {
       queryClient.setQueryData(["projects"], (old = []) =>
         old.filter((p) => p.id !== projectId)
       );
+
+      queryClient.setQueryData(["tasks"], (prev = []) =>
+        prev.filter((t) => t.project?.id !== projectId)
+      );
+
+      queryClient.removeQueries({ queryKey: ["tasks", projectId] });
     } catch (err) {
       throw new Error("Failed to delete project.");
     }
@@ -435,7 +470,18 @@ const ProjectPage = () => {
   const handleEditProject = (project) => setEditingProject(project);
   const handleOpenMiniDashboard = (project) =>
     setSelectedProjectForMiniDashboard(project);
+  useEffect(() => {
+    if (!selectedProjectForMiniDashboard) return;
 
+    const cachedProjects = queryClient.getQueryData(["projects"]);
+    const updated = cachedProjects?.find(
+      (p) => p.id === selectedProjectForMiniDashboard.id
+    );
+
+    if (updated && updated !== selectedProjectForMiniDashboard) {
+      setSelectedProjectForMiniDashboard(updated);
+    }
+  }, [queryClient, selectedProjectForMiniDashboard]);
   useEffect(() => {
     if (error) {
       const timeout = setTimeout(() => {
@@ -526,7 +572,6 @@ const ProjectPage = () => {
           project={selectedProjectForMiniDashboard}
           onClose={() => setSelectedProjectForMiniDashboard(null)}
           currentUser={currentUser}
-          cachedTasks={cachedTasksByProject[selectedProjectForMiniDashboard.id]}
           onProjectTasksUpdated={updateProjectCount}
         />
       )}

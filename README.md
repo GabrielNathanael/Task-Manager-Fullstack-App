@@ -16,9 +16,12 @@ This Task Manager application is a full-stack project built using Laravel (backe
 - **Task Management (CRUD)**: Create, Read, Update, and Delete tasks.
 - **Project Management (CRUD)**: Create, Read, Update, and Delete projects.
 - **Task & Project Relationship**: Tasks can be linked to specific projects, with a “Not in any project” option.
-- **Optimistic UI**: CRUD operations on frontend feel instant with dynamic updates to task and project counts.
-- **Session Management**: Uses Laravel Sanctum for fast API authentication after initial login.
-- **Project Task Caching**: Tasks on the dashboard are cached for instant reloads on repeat visits.
+- **Optimistic UI Updates**: Task and project operations feel instant with animated feedback, even before server confirmation.
+- **Advanced Caching with React Query**: Tasks and projects are cached intelligently to prevent unnecessary refetching.
+- **Pagination**: Tasks inside dashboards use client-side pagination for better UX and performance.
+- **Global Search**: The top search bar filters tasks and projects across different pages.
+- **Detailed Modal Views**: Task detail can be viewed in an interactive modal with full styling.
+- **Dynamic Task Count Sync**: Task counts and completed counts update automatically between Dashboard and Project view.
 
 ---
 
@@ -177,13 +180,32 @@ cd task-manager-frontend
 npm install
 ```
 
-### 4. Tailwind CSS v4 Setup
+### 4. Install Additional UI Libraries
+
+The app uses:
+
+- `lucide-react` for icons.
+- `@tanstack/react-table` for table views.
+- `@tanstack/react-query` for caching and async state.
+- `framer-motion` and `react-intersection-observer` for animations.
+
+To ensure smooth UI, install them if not already present:
+
+```bash
+npm install lucide-react @tanstack/react-query @tanstack/react-table framer-motion react-intersection-observer
+```
+
+---
+
+### 5. Tailwind CSS v4 Setup
 
 Follow the official Tailwind CSS v4 + Vite installation guide:
 
-👉 https://tailwindcss.com/docs/installation/using-vite
+👉 [https://tailwindcss.com/docs/installation/using-vite](https://tailwindcss.com/docs/installation/using-vite)
 
-### 5. Setup `.env.local`
+---
+
+### 6. Setup `.env.local`
 
 ```bash
 cp .env.example .env.local
@@ -239,4 +261,6 @@ You'll see the **Login page**. You can register a new account or login with exis
 
 ## 📸 Screenshots
 
-![Dashboard](./dashboard.jpg)
+![Dashboard Page](./dashboard.png)
+![Project Page](./project.png)
+![Mini Dashboard](./mini-dashboard.png)

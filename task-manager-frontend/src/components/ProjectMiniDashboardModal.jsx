@@ -10,6 +10,8 @@ import {
 import { PlusIcon, SearchIcon } from "../assets/icons/Icons.jsx";
 import Pagination from "../components/Pagination";
 import { X, Calendar, Tag, FileText, Clock } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 const formatStatusText = (status) => {
   if (!status) return "";
@@ -29,6 +31,7 @@ const TaskList = ({
   setSearch,
   pagination,
   setPagination,
+  localProject,
 }) => {
   const data = useMemo(() => tasks, [tasks]);
 
@@ -123,10 +126,7 @@ const TaskList = ({
       <div className="px-6 py-4 border-b border-gray-200">
         <h3 className="text-xl font-bold text-gray-800">Project Tasks</h3>
         <p className="text-sm text-gray-600 mt-1">
-          Description:{" "}
-          {tasks.length > 0 && tasks[0].project?.description
-            ? tasks[0].project.description
-            : "None"}
+          Description: {localProject?.description || "None"}
         </p>
       </div>
 
@@ -215,50 +215,51 @@ const ProjectMiniDashboardModal = ({
   cachedTasks,
   onProjectTasksUpdated,
 }) => {
-  const [tasks, setTasks] = useState([]);
-  const [loadingTasks, setLoadingTasks] = useState(true);
-  const [error, setError] = useState(null);
   const [editingTask, setEditingTask] = useState(null);
   const [taskToDelete, setTaskToDelete] = useState(null);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [search, setSearch] = useState("");
+  const [localProject, setLocalProject] = useState(project);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const latest = queryClient
+      .getQueryData(["projects"])
+      ?.find((p) => p.id === project.id);
+    if (latest && JSON.stringify(latest) !== JSON.stringify(localProject)) {
+      setLocalProject(latest);
+    }
+  }, [queryClient, project.id, localProject]);
+  const [addTaskErrors, setAddTaskErrors] = useState({ title: "", status: "" });
+  const [editTaskErrors, setEditTaskErrors] = useState({
+    title: "",
+    status: "",
+  });
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 5,
   });
   const [selectedTaskForDetail, setSelectedTaskForDetail] = useState(null);
 
-  useEffect(() => {
-    const fetchTasks = async () => {
-      if (cachedTasks && cachedTasks.projectId === project.id) {
-        setTasks(cachedTasks.tasks);
-        setLoadingTasks(false);
-        return;
-      }
-      setLoadingTasks(true);
-      try {
-        const authToken = localStorage.getItem("sanctum_token");
-        const res = await axios.get(
-          `http://localhost:8000/api/tasks?project_id=${project.id}`,
-          {
-            headers: { Authorization: `Bearer ${authToken}` },
-          }
-        );
-        setTasks(res.data.tasks);
-        onProjectTasksUpdated(
-          project.id,
-          res.data.tasks.length,
-          res.data.tasks.filter((t) => t.status === "completed").length,
-          res.data.tasks
-        );
-      } catch (err) {
-        setError("Failed to fetch tasks.");
-      } finally {
-        setLoadingTasks(false);
-      }
-    };
-    fetchTasks();
-  }, [project.id]);
+  const {
+    data: tasks = [],
+    isLoading: loadingTasks,
+    error,
+  } = useQuery({
+    queryKey: ["tasks", project.id],
+    queryFn: async () => {
+      const res = await axios.get(
+        `http://localhost:8000/api/tasks?project_id=${project.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("sanctum_token")}`,
+          },
+        }
+      );
+      return res.data.tasks;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
 
   const updateProjectCounts = (updatedTasks) => {
     onProjectTasksUpdated(
@@ -269,45 +270,82 @@ const ProjectMiniDashboardModal = ({
     );
   };
 
-  const handleAddTask = async (form) => {
-    const optimisticId = `temp-${Date.now()}`;
-    const optimisticTask = {
-      ...form,
-      id: optimisticId,
-      isOptimistic: true,
-      project,
+  const handleAddTask = async (data) => {
+    setAddTaskErrors({ title: "", status: "" });
+
+    const newErrors = {
+      title: data.title.trim() ? "" : "Title is required.",
+      status: data.status.trim() ? "" : "Status is required.",
     };
-    const updated = [optimisticTask, ...tasks];
-    setTasks(updated);
-    updateProjectCounts(updated);
+
+    if (newErrors.title || newErrors.status) {
+      setAddTaskErrors(newErrors);
+      return;
+    }
+
+    const newTask = {
+      ...data,
+      project_id: project.id,
+      isOptimistic: true,
+    };
+
+    const previous = queryClient.getQueryData(["tasks", project.id]) || [];
+    queryClient.setQueryData(["tasks", project.id], [newTask, ...previous]);
     setShowAddTaskModal(false);
+
     try {
       const res = await axios.post(
-        "http://localhost:8000/api/tasks",
-        { ...form, project_id: project.id },
+        `http://localhost:8000/api/tasks`,
+        {
+          ...data,
+          project_id: project.id,
+        },
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("sanctum_token")}`,
           },
         }
       );
-      const final = updated.map((t) =>
-        t.id === optimisticId ? { ...res.data.task, project } : t
-      );
-      setTasks(final);
-      updateProjectCounts(final);
+
+      const createdTask = { ...res.data.task, project };
+
+      queryClient.setQueryData(["tasks", project.id], (old = []) => {
+        return [createdTask, ...old.filter((t) => !t.isOptimistic)];
+      });
+
+      queryClient.setQueryData(["tasks"], (prev = []) => [
+        createdTask,
+        ...prev,
+      ]);
+
+      const updated = [createdTask, ...previous];
+      updateProjectCounts(updated);
     } catch {
-      setTasks((prev) => prev.filter((t) => t.id !== optimisticId));
+      queryClient.setQueryData(["tasks", project.id], previous);
     }
   };
 
   const handleUpdateTask = async (taskId, data) => {
-    const original = [...tasks];
-    const optimistic = tasks.map((t) =>
+    setEditTaskErrors({ title: "", status: "" });
+
+    const newErrors = {
+      title: data.title.trim() ? "" : "Title is required.",
+      status: data.status.trim() ? "" : "Status is required.",
+    };
+
+    if (newErrors.title || newErrors.status) {
+      setEditTaskErrors(newErrors);
+      return;
+    }
+
+    const original = queryClient.getQueryData(["tasks", project.id]) || [];
+
+    const optimisticTasks = original.map((t) =>
       t.id === taskId ? { ...t, ...data, isOptimistic: true } : t
     );
-    setTasks(optimistic);
+    queryClient.setQueryData(["tasks", project.id], optimisticTasks);
     setEditingTask(null);
+
     try {
       const res = await axios.put(
         `http://localhost:8000/api/tasks/${taskId}`,
@@ -318,30 +356,55 @@ const ProjectMiniDashboardModal = ({
           },
         }
       );
-      const final = tasks.map((t) =>
-        t.id === taskId ? { ...res.data.task, project } : t
+
+      const updatedTask = { ...res.data.task, project };
+      const updatedTasks = original.map((t) =>
+        t.id === taskId ? updatedTask : t
       );
-      setTasks(final);
-      updateProjectCounts(final);
+
+      queryClient.setQueryData(["tasks", project.id], updatedTasks);
+
+      queryClient.setQueryData(["tasks"], (prev = []) =>
+        prev.map((t) => (t.id === taskId ? updatedTask : t))
+      );
+
+      updateProjectCounts(updatedTasks);
     } catch {
-      setTasks(original);
+      queryClient.setQueryData(["tasks", project.id], original);
     }
   };
 
   const handleConfirmDelete = async (task) => {
-    const original = [...tasks];
-    const updated = tasks.filter((t) => t.id !== task.id);
-    setTasks(updated);
+    const original = queryClient.getQueryData(["tasks", project.id]);
+    const updated = original.filter((t) => t.id !== task.id);
+    queryClient.setQueryData(["tasks", project.id], updated);
     setTaskToDelete(null);
     updateProjectCounts(updated);
+    queryClient.setQueryData(["projects"], (old = []) =>
+      old.map((p) =>
+        p.id === project.id
+          ? {
+              ...p,
+              tasks_count: updated.length,
+              completed_tasks_count: updated.filter(
+                (t) => t.status === "completed"
+              ).length,
+            }
+          : p
+      )
+    );
     try {
       await axios.delete(`http://localhost:8000/api/tasks/${task.id}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("sanctum_token")}`,
         },
       });
+
+      queryClient.setQueryData(["tasks"], (prev = []) =>
+        prev.filter((t) => t.id !== task.id)
+      );
     } catch {
-      setTasks(original);
+      queryClient.setQueryData(["tasks", project.id], original);
     }
   };
 
@@ -351,7 +414,7 @@ const ProjectMiniDashboardModal = ({
         <div className="flex justify-between items-center mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-2">
             <h3 className="text-2xl font-bold text-gray-800">
-              Project: {project.name}
+              Project: {localProject.name}
             </h3>
 
             <div className="relative max-w-xs w-full">
@@ -388,13 +451,17 @@ const ProjectMiniDashboardModal = ({
         ) : (
           <TaskList
             tasks={tasks}
-            onEditTask={setEditingTask}
+            onEditTask={(task) => {
+              setEditTaskErrors({ title: "", status: "" });
+              setEditingTask(task);
+            }}
             onDeleteTask={setTaskToDelete}
             onShowDetail={setSelectedTaskForDetail}
             search={search}
             setSearch={setSearch}
             pagination={pagination}
             setPagination={setPagination}
+            localProject={localProject}
           />
         )}
 
@@ -402,7 +469,10 @@ const ProjectMiniDashboardModal = ({
           <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white/95 backdrop-blur-md p-6 rounded-2xl shadow-2xl w-full max-w-md border border-white/20 relative">
               <button
-                onClick={() => setShowAddTaskModal(false)}
+                onClick={() => {
+                  setAddTaskErrors({ title: "", status: "" });
+                  setShowAddTaskModal(false);
+                }}
                 className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
               >
                 <X size={18} className="text-gray-500" />
@@ -438,10 +508,18 @@ const ProjectMiniDashboardModal = ({
                   <input
                     type="text"
                     name="title"
-                    required
                     placeholder="Enter task title..."
-                    className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm"
+                    className={`w-full px-3 py-2.5 text-sm rounded-xl border ${
+                      addTaskErrors.title
+                        ? "border-red-500 focus:ring-red-300"
+                        : "border-gray-200 focus:ring-blue-500"
+                    } focus:border-transparent focus:ring-2 outline-none transition-all bg-white/50 backdrop-blur-sm`}
                   />
+                  {addTaskErrors.title && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {addTaskErrors.title}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -476,18 +554,30 @@ const ProjectMiniDashboardModal = ({
                   </label>
                   <select
                     name="status"
-                    className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm appearance-none cursor-pointer"
+                    className={`w-full px-3 py-2.5 text-sm rounded-xl border ${
+                      addTaskErrors.status
+                        ? "border-red-500 focus:ring-red-300"
+                        : "border-gray-200 focus:ring-blue-500"
+                    } focus:border-transparent focus:ring-2 outline-none transition-all bg-white/50 backdrop-blur-sm appearance-none cursor-pointer`}
                   >
                     <option value="pending">Pending</option>
                     <option value="in_progress">In Progress</option>
                     <option value="completed">Completed</option>
                   </select>
+                  {addTaskErrors.status && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {addTaskErrors.status}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex gap-3 pt-3">
                   <button
                     type="button"
-                    onClick={() => setShowAddTaskModal(false)}
+                    onClick={() => {
+                      setAddTaskErrors({ title: "", status: "" });
+                      setShowAddTaskModal(false);
+                    }}
                     className="flex-1 px-4 py-2.5 text-sm rounded-xl font-medium text-gray-700 bg-gray-100 hover:scale-105 hover:bg-gray-200 transition-all duration-200"
                   >
                     Cancel
@@ -545,10 +635,18 @@ const ProjectMiniDashboardModal = ({
                     type="text"
                     name="title"
                     defaultValue={editingTask.title}
-                    required
                     placeholder="Enter task title..."
-                    className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm"
+                    className={`w-full px-3 py-2.5 text-sm rounded-xl border ${
+                      editTaskErrors.title
+                        ? "border-red-500 focus:ring-red-300"
+                        : "border-gray-200 focus:ring-blue-500"
+                    } focus:border-transparent focus:ring-2 outline-none transition-all bg-white/50 backdrop-blur-sm`}
                   />
+                  {editTaskErrors.title && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {editTaskErrors.title}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -586,12 +684,21 @@ const ProjectMiniDashboardModal = ({
                   <select
                     name="status"
                     defaultValue={editingTask.status}
-                    className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all bg-white/50 backdrop-blur-sm appearance-none cursor-pointer"
+                    className={`w-full px-3 py-2.5 text-sm rounded-xl border ${
+                      editTaskErrors.status
+                        ? "border-red-500 focus:ring-red-300"
+                        : "border-gray-200 focus:ring-blue-500"
+                    } focus:border-transparent focus:ring-2 outline-none transition-all bg-white/50 backdrop-blur-sm appearance-none cursor-pointer`}
                   >
                     <option value="pending">Pending</option>
                     <option value="in_progress">In Progress</option>
                     <option value="completed">Completed</option>
                   </select>
+                  {editTaskErrors.status && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {editTaskErrors.status}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex gap-3 pt-3">
